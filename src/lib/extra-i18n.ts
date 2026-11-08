@@ -50,6 +50,26 @@ const lv = {
   famCreated: "Ģimene izveidota",
   famInvalid: "Kods nav derīgs",
   famShared: "Dati tiek koplietoti ar ģimeni",
+  famShare: "Kopīgot",
+  famShareText: "Pievienojies manai ģimenei lietotnē Ķepatiņa! Ielūguma kods: {code}",
+  famRegen: "Jauns kods",
+  famRegenQ:
+    "Izveidot jaunu ielūguma kodu? Vecais kods vairs nedarbosies. Esošie dalībnieki paliks.",
+  famCodeNew: "Jauns kods izveidots",
+  famRemoveQ:
+    "Noņemt {who} no ģimenes? Viņa tālrunī paliks savs datu eksemplārs, bet vairs netiks sinhronizēts.",
+  famLeaveOwnerQ:
+    "Tu esi šīs ģimenes izveidotājs. Ja pametīsi, nākamais dalībnieks kļūs par izveidotāju, un ģimenes dati paliks. Tavas ierīces saturs paliks.",
+  famLeft: "Tu pameti ģimeni",
+  famGone: "Tu vairs neesi šajā ģimenē. Tavs tālrunis saglabā savu datu kopiju.",
+  famMemberRemoved: "Dalībnieks noņemts",
+  famJoinQ:
+    "Mīluļi un atgādnes šajā tālrunī tiks pievienoti ģimenei, un tos redzēs visi dalībnieki. Turpināt?",
+  famAlready: "Tu jau esi ģimenē",
+  famFull: "Šī ģimene ir pilna (līdz 8 dalībniekiem)",
+  famLimit: "Pārāk daudz mēģinājumu. Mēģini vēlreiz pēc dažām minūtēm.",
+  famError: "Kaut kas nogāja greizi. Pārbaudi savienojumu un mēģini vēlreiz.",
+  cloudSyncFail: "Neizdevās saglabāt mākonī. Mēģināsim vēlreiz.",
   offline: "Nav interneta — strādā bezsaistē. Izmaiņas saglabāsies un sinhronizēsies vēlāk.",
 };
 
@@ -105,6 +125,25 @@ const en: ExtraDict = {
   famCreated: "Family created",
   famInvalid: "That code isn't valid",
   famShared: "Data is shared with your family",
+  famShare: "Share",
+  famShareText: "Join my family in Ķepatiņa! Invite code: {code}",
+  famRegen: "New code",
+  famRegenQ: "Create a new invite code? The old code will stop working. Current members stay.",
+  famCodeNew: "New code created",
+  famRemoveQ:
+    "Remove {who} from the family? They keep their own copy of the data on their phone, but it will no longer sync.",
+  famLeaveOwnerQ:
+    "You are the creator of this family. If you leave, the next member becomes the creator and the family keeps its data. Your device keeps its copy.",
+  famLeft: "You left the family",
+  famGone: "You are no longer in this family. Your phone keeps its own copy of the data.",
+  famMemberRemoved: "Member removed",
+  famJoinQ:
+    "Pets and reminders on this phone will be added to the family and shared with every member. Continue?",
+  famAlready: "You are already in a family",
+  famFull: "This family is full (up to 8 members)",
+  famLimit: "Too many attempts. Try again in a few minutes.",
+  famError: "Something went wrong. Check your connection and try again.",
+  cloudSyncFail: "Couldn't save to the cloud. We'll try again.",
   offline: "No internet — working offline. Changes are saved and will sync later.",
 };
 
@@ -157,6 +196,26 @@ const ru: ExtraDict = {
   famCreated: "Семья создана",
   famInvalid: "Код недействителен",
   famShared: "Данные общие с семьёй",
+  famShare: "Поделиться",
+  famShareText: "Присоединяйся к моей семье в Ķepatiņa! Код приглашения: {code}",
+  famRegen: "Новый код",
+  famRegenQ:
+    "Создать новый код приглашения? Старый код перестанет работать. Текущие участники останутся.",
+  famCodeNew: "Новый код создан",
+  famRemoveQ:
+    "Удалить {who} из семьи? На его телефоне останется своя копия данных, но синхронизация прекратится.",
+  famLeaveOwnerQ:
+    "Вы создатель этой семьи. Если вы выйдете, создателем станет следующий участник, а данные семьи сохранятся. Копия на вашем устройстве останется.",
+  famLeft: "Вы покинули семью",
+  famGone: "Вы больше не в этой семье. На телефоне осталась ваша копия данных.",
+  famMemberRemoved: "Участник удалён",
+  famJoinQ:
+    "Питомцы и напоминания с этого телефона будут добавлены в семью, и их увидят все участники. Продолжить?",
+  famAlready: "Вы уже состоите в семье",
+  famFull: "В этой семье уже максимум участников (до 8)",
+  famLimit: "Слишком много попыток. Повторите через несколько минут.",
+  famError: "Что-то пошло не так. Проверьте соединение и повторите.",
+  cloudSyncFail: "Не удалось сохранить в облако. Попробуем ещё раз.",
   offline: "Нет интернета — работаем офлайн. Изменения сохранятся и синхронизируются позже.",
 };
 
@@ -211,6 +270,27 @@ const fr: ExtraDict = {
   famCreated: "Famille créée",
   famInvalid: "Ce code n’est pas valide",
   famShared: "Données partagées avec la famille",
+  famShare: "Partager",
+  famShareText: "Rejoins ma famille dans Ķepatiņa ! Code d’invitation : {code}",
+  famRegen: "Nouveau code",
+  famRegenQ:
+    "Créer un nouveau code d’invitation ? L’ancien code ne fonctionnera plus. Les membres actuels restent.",
+  famCodeNew: "Nouveau code créé",
+  famRemoveQ:
+    "Retirer {who} de la famille ? Sa copie des données reste sur son téléphone, mais elle ne sera plus synchronisée.",
+  famLeaveOwnerQ:
+    "Vous êtes le créateur de cette famille. Si vous partez, le membre suivant en devient le créateur et la famille garde ses données. Votre appareil garde sa copie.",
+  famLeft: "Vous avez quitté la famille",
+  famGone:
+    "Vous ne faites plus partie de cette famille. Votre téléphone garde sa propre copie des données.",
+  famMemberRemoved: "Membre retiré",
+  famJoinQ:
+    "Les animaux et rappels de ce téléphone seront ajoutés à la famille et visibles par tous les membres. Continuer ?",
+  famAlready: "Vous faites déjà partie d’une famille",
+  famFull: "Cette famille est complète (8 membres maximum)",
+  famLimit: "Trop de tentatives. Réessayez dans quelques minutes.",
+  famError: "Un problème est survenu. Vérifiez la connexion et réessayez.",
+  cloudSyncFail: "Impossible d’enregistrer dans le cloud. Nouvel essai bientôt.",
   offline: "Pas d’internet — mode hors ligne. Les modifications seront synchronisées plus tard.",
 };
 
