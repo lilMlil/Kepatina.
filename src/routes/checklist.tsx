@@ -418,7 +418,15 @@ function ChecklistPage() {
           {doneCount} / {list.length} {u.done}
           {selectedPet && owner === selectedPet.id ? ` · ${selectedPet.name}` : ""}
         </p>
-        <div className="h-2 overflow-hidden rounded-full bg-secondary">
+        <div
+          role="progressbar"
+          aria-label={u.title}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={pct}
+          aria-valuetext={`${doneCount} / ${list.length} ${u.done}`}
+          className="h-2 overflow-hidden rounded-full bg-secondary"
+        >
           <div
             className="h-full rounded-full bg-primary transition-all"
             style={{ width: `${pct}%` }}
@@ -430,8 +438,10 @@ function ChecklistPage() {
         const rows = list.filter((i) => i.group === g);
         if (!rows.length) return null;
         return (
-          <section key={g} className="space-y-2">
-            <h2 className="text-lg font-semibold">{u.groups[g]}</h2>
+          <section key={g} aria-labelledby={`group-${g}`} className="space-y-2">
+            <h2 id={`group-${g}`} className="text-lg font-semibold">
+              {u.groups[g]}
+            </h2>
             {rows.map((i) => {
               const checked = !!checks[keyOf(i.id)];
               return (
@@ -439,13 +449,20 @@ function ChecklistPage() {
                   <button
                     type="button"
                     onClick={() => toggleCheck(keyOf(i.id))}
-                    aria-pressed={checked}
+                    role="checkbox"
+                    aria-checked={checked}
                     className="flex w-full items-start gap-3 text-left"
                   >
                     {checked ? (
-                      <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                      <CheckCircle2
+                        className="mt-0.5 h-5 w-5 shrink-0 text-primary"
+                        aria-hidden="true"
+                      />
                     ) : (
-                      <Circle className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
+                      <Circle
+                        className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground"
+                        aria-hidden="true"
+                      />
                     )}
                     <span
                       className={`text-sm font-semibold ${checked ? "text-muted-foreground line-through" : ""}`}
@@ -454,8 +471,12 @@ function ChecklistPage() {
                     </span>
                   </button>
                   {i.to && (
-                    <Link to={i.to} className="ml-8 inline-block text-sm font-bold text-primary">
-                      {u.open} →
+                    <Link
+                      to={i.to}
+                      aria-label={`${u.open}: ${i.text[settings.lang]}`}
+                      className="ml-8 inline-flex min-h-11 items-center text-sm font-bold text-primary"
+                    >
+                      {u.open} <span aria-hidden="true">&nbsp;→</span>
                     </Link>
                   )}
                 </Card>
@@ -466,7 +487,7 @@ function ChecklistPage() {
       })}
 
       <div className="flex gap-2 text-xs font-semibold text-warn">
-        <Info className="h-4 w-4 shrink-0" /> {u.note}
+        <Info className="h-4 w-4 shrink-0" aria-hidden="true" /> {u.note}
       </div>
     </>
   );
