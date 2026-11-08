@@ -50,7 +50,7 @@ export const accountCopy: Record<Lang, AccountCopy> = {
     deleteTitle: "Dzēst kontu?",
     deleteBody:
       "Konts un visi mākoņa dati tiks neatgriezeniski dzēsti. Dati šajā tālrunī paliks, līdz tu tos izdzēsīsi vai noņemsi lietotni.",
-    deleteFamilyNote: " Tu esi ģimenes īpašnieks — kopīgā piekļuve visiem dalībniekiem beigsies.",
+    deleteFamilyNote: " Tu esi ģimenes izveidotājs — vadība pāries nākamajam dalībniekam, un kopīgie dati paliks viņiem.",
     deleteConfirm: "Dzēst",
     deleted: "Konts dzēsts.",
     deleteFail: "Neizdevās dzēst kontu",
@@ -84,7 +84,7 @@ export const accountCopy: Record<Lang, AccountCopy> = {
     deleteTitle: "Delete account?",
     deleteBody:
       "Your account and all cloud data will be permanently deleted. Data on this phone stays until you delete it or remove the app.",
-    deleteFamilyNote: " You own a family group — sharing will end for all members.",
+    deleteFamilyNote: " You created the family group — the next member will take over and keep the shared data.",
     deleteConfirm: "Delete",
     deleted: "Account deleted.",
     deleteFail: "Couldn't delete the account",
@@ -118,7 +118,7 @@ export const accountCopy: Record<Lang, AccountCopy> = {
     deleteTitle: "Удалить аккаунт?",
     deleteBody:
       "Аккаунт и все данные в облаке будут удалены навсегда. Данные на этом телефоне останутся, пока вы не удалите их или само приложение.",
-    deleteFamilyNote: " Вы владелец семейной группы — общий доступ закончится у всех участников.",
+    deleteFamilyNote: " Вы создали семейную группу — управление перейдёт следующему участнику, и общие данные останутся у него.",
     deleteConfirm: "Удалить",
     deleted: "Аккаунт удалён.",
     deleteFail: "Не удалось удалить аккаунт",
@@ -154,7 +154,7 @@ export const accountCopy: Record<Lang, AccountCopy> = {
     deleteBody:
       "Votre compte et toutes les données du cloud seront supprimés définitivement. Les données de ce téléphone restent jusqu’à ce que vous les supprimiez ou désinstalliez l’application.",
     deleteFamilyNote:
-      " Vous êtes propriétaire d’un groupe familial — le partage prendra fin pour tous les membres.",
+      " Vous avez créé le groupe familial — le membre suivant en deviendra responsable et gardera les données partagées.",
     deleteConfirm: "Supprimer",
     deleted: "Compte supprimé.",
     deleteFail: "Impossible de supprimer le compte",
