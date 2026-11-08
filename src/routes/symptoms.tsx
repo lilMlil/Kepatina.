@@ -688,6 +688,13 @@ async function fetchClinics(lat: number, lon: number): Promise<Clinic[]> {
   return list.sort((a, b) => a.km - b.km).slice(0, 3);
 }
 
+const riskTag: Record<Lang, Record<Risk, string>> = {
+  lv: { red: "Steidzami", yellow: "Šodien pie ārsta", green: "Var novērot mājās" },
+  en: { red: "Urgent", yellow: "See a vet today", green: "Can monitor at home" },
+  ru: { red: "Срочно", yellow: "Сегодня к ветеринару", green: "Можно наблюдать дома" },
+  fr: { red: "Urgent", yellow: "Vétérinaire aujourd’hui", green: "Surveillance à domicile" },
+};
+
 function VetFinder({
   lang,
   risk,
@@ -763,7 +770,10 @@ function VetFinder({
     <Card className={`space-y-4 ${risk === "red" ? "border-danger/40" : ""}`}>
       <div className="space-y-1">
         <div className="flex items-center gap-2">
-          <Phone className={`h-5 w-5 ${risk === "red" ? "text-danger" : "text-primary"}`} />
+          <Phone
+            className={`h-5 w-5 ${risk === "red" ? "text-danger" : "text-primary"}`}
+            aria-hidden="true"
+          />
           <h3 className="text-lg font-semibold">{c.title}</h3>
         </div>
         <p className="text-xs text-muted-foreground">{c.subtitle}</p>
@@ -787,7 +797,7 @@ function VetFinder({
             aria-label={`${c.call}: ${vet.name || vet.phone}`}
             className={callCls}
           >
-            <Phone className="h-4 w-4" />
+            <Phone className="h-4 w-4" aria-hidden="true" />
             {c.call}
           </a>
         </div>
@@ -850,19 +860,41 @@ function VetFinder({
           type="button"
           onClick={find}
           disabled={state === "loading"}
-          className="flex w-full items-center justify-center gap-2 rounded-full border-2 border-primary px-4 py-2 text-sm font-bold text-primary disabled:opacity-60"
+          aria-busy={state === "loading"}
+          className="flex min-h-11 w-full items-center justify-center gap-2 rounded-full border-2 border-primary px-4 py-2 text-sm font-bold text-primary disabled:opacity-60"
         >
           {state === "loading" ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
           ) : (
-            <MapPin className="h-4 w-4" />
+            <MapPin className="h-4 w-4" aria-hidden="true" />
           )}
           {state === "loading" ? c.finding : c.find}
         </button>
 
-        {state === "denied" && <p className="text-xs text-danger">{c.denied}</p>}
-        {state === "nolocation" && <p className="text-xs text-danger">{c.locFail}</p>}
-        {state === "failed" && <p className="text-xs text-danger">{c.failed}</p>}
+        <p className="sr-only" role="status" aria-live="polite">
+          {state === "loading"
+            ? c.finding
+            : state === "done"
+              ? clinics.length === 0
+                ? c.none
+                : `${c.nearest}: ${clinics.length}`
+              : ""}
+        </p>
+        {state === "denied" && (
+          <p role="alert" className="text-xs text-danger">
+            {c.denied}
+          </p>
+        )}
+        {state === "nolocation" && (
+          <p role="alert" className="text-xs text-danger">
+            {c.locFail}
+          </p>
+        )}
+        {state === "failed" && (
+          <p role="alert" className="text-xs text-danger">
+            {c.failed}
+          </p>
+        )}
         {state === "done" && (
           <div className="space-y-2">
             <p className="text-sm font-bold">{c.nearest}</p>
@@ -870,6 +902,8 @@ function VetFinder({
             {clinics.map((k) => (
               <div
                 key={`${k.lat},${k.lon}`}
+                role="group"
+                aria-label={k.name}
                 className="space-y-2 rounded-2xl border bg-background p-3"
               >
                 <p className="flex items-center gap-2 font-bold">
@@ -886,8 +920,12 @@ function VetFinder({
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {k.phone && (
-                    <a href={`tel:${cleanPhone(k.phone)}`} className={callCls}>
-                      <Phone className="h-4 w-4" />
+                    <a
+                      href={`tel:${cleanPhone(k.phone)}`}
+                      aria-label={`${c.call}: ${k.name}`}
+                      className={callCls}
+                    >
+                      <Phone className="h-4 w-4" aria-hidden="true" />
                       {c.call}
                     </a>
                   )}
@@ -895,9 +933,10 @@ function VetFinder({
                     href={`https://www.google.com/maps/dir/?api=1&destination=${k.lat},${k.lon}`}
                     target="_blank"
                     rel="noopener noreferrer"
+                    aria-label={`${c.directions}: ${k.name}`}
                     className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-bold"
                   >
-                    <Navigation className="h-4 w-4" />
+                    <Navigation className="h-4 w-4" aria-hidden="true" />
                     {c.directions}
                   </a>
                 </div>
@@ -912,7 +951,7 @@ function VetFinder({
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 text-xs font-bold text-primary underline"
           >
-            <MapPin className="h-3 w-3" />
+            <MapPin className="h-3 w-3" aria-hidden="true" />
             {c.moreMaps}
           </a>
         )}
@@ -946,11 +985,12 @@ function SymptomsPage() {
         <SpeciesSelector value={species} onChange={setOverride} />
       </div>
 
-      {s ? (
-        <>
+      {/* Live region: TalkBack announces the verdict as soon as a symptom is picked. */}
+      <div aria-live="polite" aria-atomic="true" className="empty:hidden">
+        {s && (
           <div className={`space-y-2 rounded-3xl p-5 ${style[s.risk]}`}>
             <div className="flex items-center gap-2">
-              <Icon className="h-6 w-6" />
+              <Icon className="h-6 w-6" aria-hidden="true" />
               <h2 className="text-xl font-semibold">{riskCopy[lang][s.risk][0]}</h2>
             </div>
             <p className="text-sm font-semibold text-foreground">{riskCopy[lang][s.risk][1]}</p>
@@ -958,13 +998,15 @@ function SymptomsPage() {
               {s[lang][0]} · {speciesLabel(t, species).toLowerCase()}
             </p>
           </div>
-          {s.risk !== "green" && (
-            <VetFinder lang={lang} risk={s.risk} petVetPhone={selectedPet?.vetPhone} />
-          )}
-        </>
+        )}
+      </div>
+      {s ? (
+        s.risk !== "green" && (
+          <VetFinder lang={lang} risk={s.risk} petVetPhone={selectedPet?.vetPhone} />
+        )
       ) : (
         <Card className="flex gap-3">
-          <Hand className="h-6 w-6 shrink-0 text-primary" />
+          <Hand className="h-6 w-6 shrink-0 text-primary" aria-hidden="true" />
           <div>
             <h3 className="font-semibold">{t.pickSymptomTitle}</h3>
             <p className="text-sm text-muted-foreground">{t.pickSymptomBody}</p>
@@ -980,25 +1022,29 @@ function SymptomsPage() {
           return (
             <button
               key={x.id}
+              type="button"
               onClick={() => setSel(active ? null : x.id)}
+              aria-pressed={active}
               className={`flex w-full items-start gap-3 rounded-2xl border p-3 text-left ${active ? "border-primary bg-secondary" : "bg-card"}`}
             >
               {active ? (
-                <CheckCircle2 className="mt-0.5 h-5 w-5 text-primary" />
+                <CheckCircle2 className="mt-0.5 h-5 w-5 text-primary" aria-hidden="true" />
               ) : (
-                <Circle className="mt-0.5 h-5 w-5 text-muted-foreground" />
+                <Circle className="mt-0.5 h-5 w-5 text-muted-foreground" aria-hidden="true" />
               )}
               <span className="flex-1">
                 <span className="block font-bold">{x[lang][0]}</span>
                 <span className="block text-xs text-muted-foreground">{x[lang][1]}</span>
               </span>
-              <span className={`mt-1.5 h-2.5 w-2.5 rounded-full ${dot}`} />
+              {/* The colour dot means nothing to a screen reader, so say the risk in words. */}
+              <span className="sr-only">{riskTag[lang][x.risk]}</span>
+              <span aria-hidden="true" className={`mt-1.5 h-2.5 w-2.5 rounded-full ${dot}`} />
             </button>
           );
         })}
       </div>
       <div className="flex gap-2 text-xs text-muted-foreground">
-        <Info className="h-4 w-4 shrink-0" /> {t.symDisclaimer}
+        <Info className="h-4 w-4 shrink-0" aria-hidden="true" /> {t.symDisclaimer}
       </div>
     </>
   );
