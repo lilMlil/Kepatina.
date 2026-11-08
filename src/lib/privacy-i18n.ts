@@ -1,11 +1,7 @@
 import type { Lang } from "./i18n";
 
-/**
- * TODO: put YOUR real name and contact e-mail here (they appear in the privacy policy).
- * The e-mail is public: use an address you are happy to show, not necessarily your login e-mail.
- */
-export const CONTROLLER_NAME = "YOUR NAME";
-export const CONTACT_EMAIL = "your-email@example.com";
+export const CONTROLLER_NAME = "Zane Bajāre";
+export const CONTACT_EMAIL = "zanehane.official@gmail.com";
 
 export interface PrivacySection {
   h: string;
