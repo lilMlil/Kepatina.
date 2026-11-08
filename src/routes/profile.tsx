@@ -27,6 +27,7 @@ import { FAMILY_MAX_MEMBERS, useApp, type JoinError } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 import { authRedirectUrl, shareText } from "@/lib/native/platform";
 import { accountCopy } from "@/lib/account-i18n";
+import { privacyDocs } from "@/lib/privacy-i18n";
 
 export const Route = createFileRoute("/profile")({
   component: ProfilePage,
@@ -282,6 +283,12 @@ function AuthForm() {
         </button>
       )}
       <p className="text-xs text-muted-foreground">{t.localOnly}</p>
+      <p className="text-xs text-muted-foreground">
+        {privacyDocs[settings.lang].agree}{" "}
+        <Link to="/privacy" className="font-bold text-primary underline">
+          {privacyDocs[settings.lang].linkLabel}
+        </Link>
+      </p>
     </form>
   );
 }
