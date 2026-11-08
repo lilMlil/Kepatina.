@@ -1,0 +1,123 @@
+import type { Lang } from "./i18n";
+
+// Strings for the pet passport screen and the splash screen. Merged into the main dictionaries in i18n.ts.
+
+const lv = {
+  ppEyebrow: "Dokuments",
+  ppTitle: "Mīluļa pase",
+  ppSubtitle: "Visi svarīgākie dati vienuviet — parādi vai nosūti veterinārārstam.",
+  ppTool: "Dati, potes un vizītes vienā lapā veterinārārstam.",
+  ppOwnerPhone: "Saimnieka tālrunis",
+  ppColor: "Krāsa un īpašās pazīmes",
+  ppNeutered: "Sterilizēts / kastrēts",
+  ppYes: "Jā",
+  ppNo: "Nē",
+  ppVetName: "Veterinārārsts vai klīnika",
+  ppPetData: "Mīluļa dati",
+  ppContacts: "Kontakti",
+  ppLastVaccines: "Pēdējās potes",
+  ppLastVisits: "Pēdējās vizītes",
+  ppFullHistory: "Pilna vēsture ir Veselības žurnālā",
+  ppPrint: "Drukāt vai saglabāt PDF",
+  ppShare: "Nosūtīt",
+  ppCopy: "Kopēt tekstu",
+  ppCopied: "Pase nokopēta",
+  ppCopyFail: "Neizdevās nokopēt",
+  ppEdit: "Papildināt datus",
+  ppMissing: "Pasei vēl trūkst:",
+  ppComplete: "Pase ir aizpildīta",
+  ppUpdated: "Atjaunināts",
+  ppDisclaimer:
+    "Šo pasi aizpilda saimnieks lietotnē. Tā neaizstāj oficiālo dzīvnieka pasi un veterinārārsta ierakstus.",
+};
+
+export type PassportDict = typeof lv;
+
+const en: PassportDict = {
+  ppEyebrow: "Document",
+  ppTitle: "Pet passport",
+  ppSubtitle: "All the key facts in one place — show or send them to your vet.",
+  ppTool: "Details, vaccines and visits on one page for the vet.",
+  ppOwnerPhone: "Owner phone",
+  ppColor: "Colour & markings",
+  ppNeutered: "Spayed / neutered",
+  ppYes: "Yes",
+  ppNo: "No",
+  ppVetName: "Vet or clinic",
+  ppPetData: "Pet details",
+  ppContacts: "Contacts",
+  ppLastVaccines: "Latest vaccines",
+  ppLastVisits: "Latest visits",
+  ppFullHistory: "The full history is in the Health journal",
+  ppPrint: "Print or save as PDF",
+  ppShare: "Send",
+  ppCopy: "Copy text",
+  ppCopied: "Passport copied",
+  ppCopyFail: "Couldn't copy",
+  ppEdit: "Edit details",
+  ppMissing: "Still missing:",
+  ppComplete: "Passport is complete",
+  ppUpdated: "Updated",
+  ppDisclaimer:
+    "This passport is filled in by the owner in the app. It does not replace the official pet passport or the vet's records.",
+};
+
+const ru: PassportDict = {
+  ppEyebrow: "Документ",
+  ppTitle: "Паспорт питомца",
+  ppSubtitle: "Все важные данные в одном месте — покажите или отправьте ветеринару.",
+  ppTool: "Данные, прививки и визиты на одной странице для ветеринара.",
+  ppOwnerPhone: "Телефон владельца",
+  ppColor: "Окрас и особые приметы",
+  ppNeutered: "Стерилизован / кастрирован",
+  ppYes: "Да",
+  ppNo: "Нет",
+  ppVetName: "Ветеринар или клиника",
+  ppPetData: "Данные питомца",
+  ppContacts: "Контакты",
+  ppLastVaccines: "Последние прививки",
+  ppLastVisits: "Последние визиты",
+  ppFullHistory: "Полная история — в журнале здоровья",
+  ppPrint: "Печать или сохранить в PDF",
+  ppShare: "Отправить",
+  ppCopy: "Скопировать текст",
+  ppCopied: "Паспорт скопирован",
+  ppCopyFail: "Не удалось скопировать",
+  ppEdit: "Дополнить данные",
+  ppMissing: "Ещё не хватает:",
+  ppComplete: "Паспорт заполнен",
+  ppUpdated: "Обновлено",
+  ppDisclaimer:
+    "Паспорт заполняет владелец в приложении. Он не заменяет официальный ветеринарный паспорт и записи врача.",
+};
+
+const fr: PassportDict = {
+  ppEyebrow: "Document",
+  ppTitle: "Passeport de l’animal",
+  ppSubtitle: "Toutes les infos clés au même endroit — montrez-les ou envoyez-les au vétérinaire.",
+  ppTool: "Données, vaccins et visites sur une page pour le vétérinaire.",
+  ppOwnerPhone: "Téléphone du propriétaire",
+  ppColor: "Robe et signes particuliers",
+  ppNeutered: "Stérilisé / castré",
+  ppYes: "Oui",
+  ppNo: "Non",
+  ppVetName: "Vétérinaire ou clinique",
+  ppPetData: "Données de l’animal",
+  ppContacts: "Contacts",
+  ppLastVaccines: "Derniers vaccins",
+  ppLastVisits: "Dernières visites",
+  ppFullHistory: "L’historique complet est dans le journal de santé",
+  ppPrint: "Imprimer ou enregistrer en PDF",
+  ppShare: "Envoyer",
+  ppCopy: "Copier le texte",
+  ppCopied: "Passeport copié",
+  ppCopyFail: "Copie impossible",
+  ppEdit: "Compléter les données",
+  ppMissing: "Il manque encore :",
+  ppComplete: "Passeport complet",
+  ppUpdated: "Mis à jour",
+  ppDisclaimer:
+    "Ce passeport est rempli par le propriétaire dans l’application. Il ne remplace ni le passeport officiel ni le dossier du vétérinaire.",
+};
+
+export const passportDicts: Record<Lang, PassportDict> = { lv, en, ru, fr };

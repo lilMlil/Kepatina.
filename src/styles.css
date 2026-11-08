@@ -1,0 +1,162 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-display: "Nunito Variable", "Nunito", ui-rounded, system-ui, sans-serif;
+  --font-sans: "Nunito Variable", "Nunito", ui-rounded, system-ui, sans-serif;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 14px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-meadow: var(--meadow);
+  --color-meadow-foreground: var(--meadow-foreground);
+  --color-peach: var(--peach);
+  --color-peach-soft: var(--peach-soft);
+  --color-coral: var(--coral);
+  --color-safe: var(--safe);
+  --color-safe-soft: var(--safe-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+}
+
+:root {
+  --radius: 1rem;
+  --background: oklch(0.975 0.018 95);
+  --foreground: oklch(0.3 0.06 160);
+  --card: oklch(0.995 0.008 95);
+  --card-foreground: oklch(0.3 0.06 160);
+  --popover: oklch(0.995 0.008 95);
+  --popover-foreground: oklch(0.3 0.06 160);
+  --primary: oklch(0.42 0.1 158);
+  --primary-foreground: oklch(0.98 0.015 95);
+  --secondary: oklch(0.93 0.035 150);
+  --secondary-foreground: oklch(0.35 0.08 158);
+  --muted: oklch(0.94 0.02 100);
+  --muted-foreground: oklch(0.5 0.04 160);
+  --accent: oklch(0.82 0.12 65);
+  --accent-foreground: oklch(0.32 0.07 50);
+  --destructive: oklch(0.58 0.19 25);
+  --destructive-foreground: oklch(0.98 0.01 95);
+  --border: oklch(0.9 0.03 110);
+  --input: oklch(0.9 0.03 110);
+  --ring: oklch(0.6 0.1 158);
+  --meadow: oklch(0.6 0.09 160);
+  --meadow-foreground: oklch(0.98 0.015 95);
+  --peach: oklch(0.82 0.12 65);
+  --peach-soft: oklch(0.94 0.05 70);
+  --coral: oklch(0.7 0.14 22);
+  --safe: oklch(0.5 0.12 155);
+  --safe-soft: oklch(0.93 0.05 155);
+  --warn: oklch(0.58 0.13 65);
+  --warn-soft: oklch(0.95 0.06 80);
+  --danger: oklch(0.55 0.18 25);
+  --danger-soft: oklch(0.94 0.04 25);
+  --gradient-hero: linear-gradient(140deg, var(--meadow), var(--primary));
+  --gradient-welcome: linear-gradient(135deg, var(--peach-soft), var(--card) 55%, var(--secondary));
+  --shadow-soft: 0 10px 30px -14px color-mix(in oklab, var(--primary) 35%, transparent);
+}
+
+.dark {
+  --background: oklch(0.2 0.025 160);
+  --foreground: oklch(0.94 0.02 95);
+  --card: oklch(0.25 0.03 160);
+  --card-foreground: oklch(0.94 0.02 95);
+  --popover: oklch(0.25 0.03 160);
+  --popover-foreground: oklch(0.94 0.02 95);
+  --primary: oklch(0.72 0.11 158);
+  --primary-foreground: oklch(0.18 0.03 160);
+  --secondary: oklch(0.32 0.04 158);
+  --secondary-foreground: oklch(0.92 0.03 150);
+  --muted: oklch(0.29 0.03 160);
+  --muted-foreground: oklch(0.72 0.03 150);
+  --accent: oklch(0.78 0.12 65);
+  --accent-foreground: oklch(0.22 0.04 50);
+  --destructive: oklch(0.68 0.17 25);
+  --destructive-foreground: oklch(0.15 0.02 25);
+  --border: oklch(0.35 0.03 160);
+  --input: oklch(0.35 0.03 160);
+  --ring: oklch(0.72 0.11 158);
+  --meadow: oklch(0.45 0.08 160);
+  --meadow-foreground: oklch(0.97 0.015 95);
+  --peach: oklch(0.78 0.12 65);
+  --peach-soft: oklch(0.33 0.05 65);
+  --coral: oklch(0.72 0.14 22);
+  --safe: oklch(0.75 0.13 155);
+  --safe-soft: oklch(0.3 0.05 155);
+  --warn: oklch(0.8 0.13 75);
+  --warn-soft: oklch(0.32 0.05 70);
+  --danger: oklch(0.72 0.16 25);
+  --danger-soft: oklch(0.32 0.06 25);
+  --gradient-welcome: linear-gradient(135deg, var(--peach-soft), var(--card) 55%, var(--secondary));
+  --shadow-soft: 0 10px 30px -14px oklch(0 0 0 / 60%);
+}
+
+@utility bg-hero {
+  background-image: var(--gradient-hero);
+}
+@utility bg-welcome {
+  background-image: var(--gradient-welcome);
+}
+@utility shadow-soft {
+  box-shadow: var(--shadow-soft);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  html,
+  body {
+    overscroll-behavior: none;
+  }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-text-size-adjust: 100%;
+    padding-top: env(safe-area-inset-top);
+  }
+  /* App feel: no accidental text selection on buttons / navigation, but inputs stay editable. */
+  button,
+  nav,
+  header {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  input,
+  textarea {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  h1, h2, h3 {
+    font-family: var(--font-display);
+  }
+}
