@@ -115,7 +115,22 @@ export interface FamilyInfo {
   id: string;
   code: string;
   ownerId: string;
-  members: { userId: string; email: string | null }[];
+  members: { userId: string; email: string | null; joinedAt: string | null }[];
+}
+
+/** A family has at most this many members (the database enforces the same limit). */
+export const FAMILY_MAX_MEMBERS = 8;
+
+/** Why joining a family did not work. */
+export type JoinError = "invalid" | "already" | "full" | "limit" | "error";
+
+interface FamilyLoad {
+  info: FamilyInfo;
+  data: Partial<SavedState>;
+}
+
+function sameFamily(a: FamilyInfo | null, b: FamilyInfo | null): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
 }
 
 interface Ctx extends SavedState {
@@ -158,9 +173,10 @@ interface Ctx extends SavedState {
   online: boolean;
   family: FamilyInfo | null;
   createFamily: () => Promise<boolean>;
-  joinFamily: (code: string) => Promise<string | null>;
+  joinFamily: (code: string) => Promise<JoinError | null>;
   leaveFamily: () => Promise<void>;
   removeMember: (userId: string) => Promise<void>;
+  regenerateCode: () => Promise<boolean>;
   refreshFamily: () => Promise<void>;
 }
 
@@ -181,6 +197,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const lastPushed = useRef<string>("");
   const stateRef = useRef(state);
   stateRef.current = state;
+  const familyRef = useRef<FamilyInfo | null>(null);
+  familyRef.current = family;
+  const syncWarned = useRef(false);
+  const refreshFamilyRef = useRef<() => Promise<void>>(async () => {});
+  // Bumped to make the cloud sync try again (after an error, or right after joining a family)
+  const [syncRetry, setSyncRetry] = useState(0);
 
   useEffect(() => {
     setOnline(navigator.onLine);
@@ -254,15 +276,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => sub.subscription.unsubscribe();
   }, []);
 
+  /** null = not in a family; "error" = could not find out (network / server) — never treat that as "not in a family". */
   const loadFamily = useCallback(
-    async (uid: string): Promise<{ info: FamilyInfo; data: Partial<SavedState> } | null> => {
-      const { data: mem } = await supabase
+    async (uid: string): Promise<FamilyLoad | null | "error"> => {
+      const { data: mem, error: memError } = await supabase
         .from("family_members")
         .select("family_id")
         .eq("user_id", uid)
         .maybeSingle();
+      if (memError) return "error";
       if (!mem) return null;
-      const [{ data: fam }, { data: members }] = await Promise.all([
+      const [famRes, membersRes] = await Promise.all([
         supabase
           .from("families")
           .select("id, invite_code, owner_id, data")
@@ -270,17 +294,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
           .maybeSingle(),
         supabase
           .from("family_members")
-          .select("user_id, email")
+          .select("user_id, email, joined_at")
           .eq("family_id", mem.family_id)
           .order("joined_at"),
       ]);
+      if (famRes.error || membersRes.error) return "error";
+      const fam = famRes.data;
       if (!fam) return null;
       return {
         info: {
           id: fam.id,
           code: fam.invite_code,
           ownerId: fam.owner_id,
-          members: (members ?? []).map((m) => ({ userId: m.user_id, email: m.email })),
+          members: (membersRes.data ?? []).map((m) => ({
+            userId: m.user_id,
+            email: m.email,
+            joinedAt: m.joined_at ?? null,
+          })),
         },
         data: (fam.data ?? {}) as Partial<SavedState>,
       };
@@ -295,6 +325,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!ready || !user || !online || remoteLoaded.current === user.id) return;
     let cancelled = false;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    // Could not reach the cloud: do NOT guess (that could overwrite good data) — just try again soon.
+    const tryAgainLater = () => {
+      retryTimer = setTimeout(() => setSyncRetry((n) => n + 1), 15000);
+    };
     (async () => {
       // Signed in here before? Then this phone already holds the synced copy and the cloud is newer.
       let knownDevice = false;
@@ -305,6 +340,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
       const fam = await loadFamily(user.id);
       if (cancelled) return;
+      if (fam === "error") {
+        tryAgainLater();
+        return;
+      }
       if (fam) {
         setFamily(fam.info);
         if (hasContent(fam.data)) {
@@ -315,11 +354,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
       } else {
         setFamily(null);
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("user_state")
           .select("data")
           .eq("user_id", user.id)
           .maybeSingle();
+        if (cancelled) return;
+        if (error) {
+          tryAgainLater();
+          return;
+        }
         const remote = data?.data as Partial<SavedState> | undefined;
         if (hasContent(remote))
           setState(knownDevice ? { ...emptyState, ...remote } : mergeStates(stateRef.current, remote));
@@ -339,8 +383,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     })();
     return () => {
       cancelled = true;
+      if (retryTimer) clearTimeout(retryTimer);
     };
-  }, [user, ready, online, loadFamily]);
+  }, [user, ready, online, loadFamily, syncRetry]);
 
   // Live updates from other family members
   useEffect(() => {
@@ -351,7 +396,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "families", filter: `id=eq.${family.id}` },
         (payload) => {
-          const data = (payload.new as { data?: Partial<SavedState> }).data;
+          const row = payload.new as {
+            data?: Partial<SavedState>;
+            invite_code?: string;
+            owner_id?: string;
+          };
+          // A new invite code or a new owner (the owner left) arrives here too
+          setFamily((cur) =>
+            cur &&
+            ((row.invite_code && row.invite_code !== cur.code) ||
+              (row.owner_id && row.owner_id !== cur.ownerId))
+              ? { ...cur, code: row.invite_code ?? cur.code, ownerId: row.owner_id ?? cur.ownerId }
+              : cur,
+          );
+          const data = row.data;
           if (!data) return;
           const json = JSON.stringify(data);
           if (json === lastPushed.current) return;
@@ -369,87 +427,155 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [family]);
+    // only the family's identity matters here — not its member list or code
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [family?.id]);
 
   // Sync changes to cloud (debounced); waits while offline and resumes on reconnect
   useEffect(() => {
     if (!user || !online || remoteLoaded.current !== user.id) return;
+    const lang = settings.lang;
+    const pushFailed = () => {
+      lastPushed.current = "";
+      if (!syncWarned.current) {
+        syncWarned.current = true;
+        toast.error(dicts[lang].cloudSyncFail);
+      }
+      setTimeout(() => setSyncRetry((n) => n + 1), 20000);
+    };
     const h = setTimeout(() => {
       const json = JSON.stringify(state);
-      if (family) {
-        if (json === lastPushed.current) return;
-        lastPushed.current = json;
-        void supabase
-          .from("families")
-          .update({ data: state as never, updated_at: new Date().toISOString() })
-          .eq("id", family.id);
-      } else {
-        void supabase
-          .from("user_state")
-          .upsert({ user_id: user.id, data: state as never, updated_at: new Date().toISOString() });
-      }
+      void (async () => {
+        if (family) {
+          if (json === lastPushed.current) return;
+          lastPushed.current = json;
+          const { data, error } = await supabase
+            .from("families")
+            .update({ data: state as never, updated_at: new Date().toISOString() })
+            .eq("id", family.id)
+            .select("id");
+          if (error) return pushFailed();
+          syncWarned.current = false;
+          // Nothing was updated: we are not in this family any more (removed, or the family is gone)
+          if (!data || data.length === 0) void refreshFamilyRef.current();
+        } else {
+          const { error } = await supabase
+            .from("user_state")
+            .upsert({ user_id: user.id, data: state as never, updated_at: new Date().toISOString() });
+          if (error) return pushFailed();
+          syncWarned.current = false;
+        }
+      })();
     }, 800);
     return () => clearTimeout(h);
-  }, [state, user, online, family]);
+  }, [state, user, online, family, syncRetry, settings.lang]);
 
+  /** Re-reads the member list / code / owner. If we were removed from the family, go back to personal mode. */
   const refreshFamily = useCallback(async () => {
-    if (!user) return;
+    if (!user || !online) return;
     const fam = await loadFamily(user.id);
-    setFamily(fam?.info ?? null);
-  }, [user, loadFamily]);
+    if (fam === "error") return; // a network hiccup is not a removal
+    if (!fam) {
+      if (familyRef.current) {
+        lastPushed.current = "";
+        toast.info(dicts[settings.lang].famGone);
+      }
+      setFamily(null);
+      return;
+    }
+    setFamily((cur) => (sameFamily(cur, fam.info) ? cur : fam.info));
+  }, [user, online, loadFamily, settings.lang]);
+  refreshFamilyRef.current = refreshFamily;
+
+  // Coming back to the app (or back online): check that we are still in the family and the member list is current
+  useEffect(() => {
+    if (!family) return;
+    const check = () => {
+      if (document.visibilityState === "visible") void refreshFamilyRef.current();
+    };
+    document.addEventListener("visibilitychange", check);
+    window.addEventListener("online", check);
+    return () => {
+      document.removeEventListener("visibilitychange", check);
+      window.removeEventListener("online", check);
+    };
+  }, [family?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const createFamily = useCallback(async () => {
+    if (!user) return false;
     const { error } = await supabase.rpc("create_family", { initial: stateRef.current as never });
     if (error) return false;
     lastPushed.current = JSON.stringify(stateRef.current);
     await refreshFamily();
     return true;
-  }, [refreshFamily]);
+  }, [user, refreshFamily]);
 
   const joinFamily = useCallback(
-    async (code: string) => {
-      const { error } = await supabase.rpc("join_family", { code });
-      if (error) return error.message;
-      if (user) {
-        const fam = await loadFamily(user.id);
-        if (fam) {
-          setFamily(fam.info);
-          lastPushed.current = JSON.stringify(fam.data);
-          if (hasContent(fam.data)) setState({ ...emptyState, ...fam.data });
-        }
+    async (code: string): Promise<JoinError | null> => {
+      const { data, error } = await supabase.rpc("join_family", { code });
+      if (error) {
+        const m = error.message.toLowerCase();
+        if (m.includes("already in a family")) return "already";
+        if (m.includes("family full")) return "full";
+        if (m.includes("too many attempts")) return "limit";
+        return "error";
       }
+      if (!data) return "invalid";
+      // Joined. Load the family the same way as on a "new device": what is on this phone is MERGED
+      // with the family's data (nothing is lost), then the result is shared with the family.
+      try {
+        localStorage.removeItem(SYNCED_KEY);
+      } catch {
+        /* ignore */
+      }
+      remoteLoaded.current = null;
+      setSyncRetry((n) => n + 1);
       return null;
     },
-    [user, loadFamily],
+    [],
   );
 
   const leaveFamily = useCallback(async () => {
     if (!user || !family) return;
-    await supabase
-      .from("family_members")
-      .delete()
-      .eq("family_id", family.id)
-      .eq("user_id", user.id);
+    const { error } = await supabase.rpc("leave_family");
+    if (error) {
+      toast.error(dicts[settings.lang].famError);
+      return;
+    }
+    // If the creator leaves, the database hands the family over to the next member.
+    lastPushed.current = "";
     setFamily(null);
+    toast.success(dicts[settings.lang].famLeft);
+    // keep a personal cloud copy of what this phone has (the sync above also retries if this fails)
     await supabase.from("user_state").upsert({
       user_id: user.id,
       data: stateRef.current as never,
       updated_at: new Date().toISOString(),
     });
-  }, [user, family]);
+  }, [user, family, settings.lang]);
 
   const removeMember = useCallback(
     async (userId: string) => {
       if (!family) return;
-      await supabase
+      const { data, error } = await supabase
         .from("family_members")
         .delete()
         .eq("family_id", family.id)
-        .eq("user_id", userId);
+        .eq("user_id", userId)
+        .select("user_id");
+      if (error || !data || data.length === 0) toast.error(dicts[settings.lang].famError);
+      else toast.success(dicts[settings.lang].famMemberRemoved);
       await refreshFamily();
     },
-    [family, refreshFamily],
+    [family, refreshFamily, settings.lang],
   );
+
+  const regenerateCode = useCallback(async (): Promise<boolean> => {
+    const { data, error } = await supabase.rpc("regenerate_invite_code");
+    if (error || !data) return false;
+    setFamily((cur) => (cur ? { ...cur, code: data } : cur));
+    return true;
+  }, []);
 
   const clearRecovery = useCallback(() => {
     try {
@@ -694,6 +820,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       signOut: async () => {
         await supabase.auth.signOut();
         remoteLoaded.current = null;
+        lastPushed.current = "";
         setFamily(null);
       },
       deleteAccount,
@@ -707,6 +834,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       joinFamily,
       leaveFamily,
       removeMember,
+      regenerateCode,
       refreshFamily,
     }),
     [
@@ -731,6 +859,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       joinFamily,
       leaveFamily,
       removeMember,
+      regenerateCode,
       refreshFamily,
     ],
   );
