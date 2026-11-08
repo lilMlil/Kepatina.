@@ -10,6 +10,7 @@ on:
 jobs:
   apk:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
 
@@ -23,9 +24,16 @@ jobs:
           java-version: 21
 
       - name: Install dependencies
+        # "sharp" downloads a small library from github.com during install; that download sometimes
+        # times out. Trying again is enough, so the build retries up to 3 times.
         run: |
           npm install -g npm@11
-          npm install --legacy-peer-deps
+          for attempt in 1 2 3; do
+            npm install --legacy-peer-deps && exit 0
+            echo "npm install failed (attempt $attempt of 3), retrying in 15 s..."
+            sleep 15
+          done
+          exit 1
 
       - name: Create .env from repository secrets
         run: |
