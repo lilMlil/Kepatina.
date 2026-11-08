@@ -1,7 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useId, useState } from "react";
 import { toast } from "sonner";
-import { Cloud, Copy, Eye, EyeOff, LogOut, PawPrint, Settings, Trash2, Users } from "lucide-react";
+import {
+  Cloud,
+  Copy,
+  Eye,
+  EyeOff,
+  LogOut,
+  PawPrint,
+  RefreshCw,
+  Settings,
+  Share2,
+  Trash2,
+  Users,
+} from "lucide-react";
 import {
   AvatarPicker,
   Card,
@@ -11,9 +23,9 @@ import {
   TextField,
   useConfirm,
 } from "@/components/kit";
-import { useApp } from "@/lib/store";
+import { FAMILY_MAX_MEMBERS, useApp, type JoinError } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
-import { authRedirectUrl } from "@/lib/native/platform";
+import { authRedirectUrl, shareText } from "@/lib/native/platform";
 import { accountCopy } from "@/lib/account-i18n";
 
 export const Route = createFileRoute("/profile")({
@@ -274,12 +286,57 @@ function AuthForm() {
   );
 }
 
+/** 12-character codes are shown in groups of four: ABCD-EFGH-IJKL (the server ignores the dashes). */
+function formatCode(code: string): string {
+  return code.replace(/(.{4})(?=.)/g, "$1-");
+}
+
+async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function FamilyCard() {
-  const { t, user, family, createFamily, joinFamily, leaveFamily, removeMember, online } = useApp();
+  const {
+    t,
+    user,
+    family,
+    pets,
+    createFamily,
+    joinFamily,
+    leaveFamily,
+    removeMember,
+    regenerateCode,
+    online,
+  } = useApp();
   const { ask, dialog } = useConfirm();
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const isOwner = !!family && family.ownerId === user?.id;
+  const othersInFamily = family ? family.members.some((m) => m.userId !== user?.id) : false;
+
+  const joinErrorText: Record<JoinError, string> = {
+    invalid: t.famInvalid,
+    already: t.famAlready,
+    full: t.famFull,
+    limit: t.famLimit,
+    error: t.famError,
+  };
+
+  async function doJoin() {
+    setBusy(true);
+    const err = await joinFamily(code);
+    setBusy(false);
+    if (err) toast.error(joinErrorText[err]);
+    else {
+      toast.success(t.famJoined);
+      setCode("");
+    }
+  }
 
   return (
     <Card className="space-y-3">
@@ -297,23 +354,51 @@ function FamilyCard() {
           <div className="space-y-1">
             <p className="text-xs font-bold text-muted-foreground">{t.famCode}</p>
             <div className="flex items-center gap-2">
-              <span className="flex-1 rounded-2xl bg-secondary px-4 py-3 text-center font-mono text-xl font-bold tracking-[0.3em] text-primary">
-                {family.code}
+              <span className="min-w-0 flex-1 rounded-2xl bg-secondary px-3 py-3 text-center font-mono text-lg font-bold tracking-widest text-primary">
+                {formatCode(family.code)}
               </span>
               <GhostButton
                 aria-label={t.famCopy}
-                onClick={() => {
-                  void navigator.clipboard?.writeText(family.code);
-                  toast.success(t.famCopied);
+                onClick={async () => {
+                  if (await copyText(family.code)) toast.success(t.famCopied);
+                  else toast.error(t.famError);
                 }}
               >
                 <Copy className="h-4 w-4" />
               </GhostButton>
+              <GhostButton
+                aria-label={t.famShare}
+                onClick={async () => {
+                  const text = t.famShareText.replace("{code}", formatCode(family.code));
+                  const shared = await shareText(t.famTitle, text);
+                  // no share sheet available (some browsers): copy the message instead
+                  if (!shared && (await copyText(text))) toast.success(t.famCopied);
+                }}
+              >
+                <Share2 className="h-4 w-4" />
+              </GhostButton>
             </div>
             <p className="text-xs text-muted-foreground">{t.famCodeHint}</p>
+            {isOwner && (
+              <button
+                className="flex items-center gap-1 pt-1 text-xs font-bold text-primary disabled:opacity-50"
+                disabled={!online}
+                onClick={() =>
+                  ask(t.famRegen, t.famRegenQ, t.famRegen, () => {
+                    void regenerateCode().then((ok) =>
+                      ok ? toast.success(t.famCodeNew) : toast.error(t.famError),
+                    );
+                  })
+                }
+              >
+                <RefreshCw className="h-3.5 w-3.5" /> {t.famRegen}
+              </button>
+            )}
           </div>
           <div className="space-y-1">
-            <p className="text-xs font-bold text-muted-foreground">{t.famMembers}</p>
+            <p className="text-xs font-bold text-muted-foreground">
+              {t.famMembers} · {family.members.length}/{FAMILY_MAX_MEMBERS}
+            </p>
             <ul className="divide-y rounded-2xl border">
               {family.members.map((m) => (
                 <li
@@ -331,8 +416,15 @@ function FamilyCard() {
                   </span>
                   {isOwner && m.userId !== user.id && (
                     <button
-                      className="text-xs font-bold text-destructive"
-                      onClick={() => void removeMember(m.userId)}
+                      className="shrink-0 text-xs font-bold text-destructive"
+                      onClick={() =>
+                        ask(
+                          t.famRemove,
+                          t.famRemoveQ.replace("{who}", m.email ?? "—"),
+                          t.famRemove,
+                          () => void removeMember(m.userId),
+                        )
+                      }
                     >
                       {t.famRemove}
                     </button>
@@ -342,7 +434,15 @@ function FamilyCard() {
             </ul>
           </div>
           <GhostButton
-            onClick={() => ask(t.famLeave, t.famLeaveQ, t.famLeave, () => void leaveFamily())}
+            disabled={!online}
+            onClick={() =>
+              ask(
+                t.famLeave,
+                isOwner && othersInFamily ? t.famLeaveOwnerQ : t.famLeaveQ,
+                t.famLeave,
+                () => void leaveFamily(),
+              )
+            }
           >
             {t.famLeave}
           </GhostButton>
@@ -357,35 +457,34 @@ function FamilyCard() {
               const ok = await createFamily();
               setBusy(false);
               if (ok) toast.success(t.famCreated);
-              else toast.error(t.famInvalid);
+              else toast.error(t.famError);
             }}
           >
             {t.famCreate}
           </PrimaryButton>
           <form
             className="flex gap-2"
-            onSubmit={async (e) => {
+            onSubmit={(e) => {
               e.preventDefault();
               if (!code.trim()) return;
-              setBusy(true);
-              const err = await joinFamily(code);
-              setBusy(false);
-              if (err) toast.error(t.famInvalid);
-              else {
-                toast.success(t.famJoined);
-                setCode("");
-              }
+              // pets on this phone become visible to the whole family: ask first
+              if (pets.length > 0) ask(t.famJoin, t.famJoinQ, t.famJoin, () => void doJoin());
+              else void doJoin();
             }}
           >
             <input
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
-              maxLength={8}
+              maxLength={14}
+              autoCapitalize="characters"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
               placeholder={t.famCodePh}
               aria-label={t.famCodePh}
               className="h-12 min-w-0 flex-1 rounded-2xl border bg-background px-4 font-mono uppercase tracking-widest outline-none focus:border-primary"
             />
-            <GhostButton type="submit" disabled={busy || !online}>
+            <GhostButton type="submit" disabled={busy || !online || !code.trim()}>
               {t.famJoin}
             </GhostButton>
           </form>
