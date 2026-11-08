@@ -1,5 +1,8 @@
 node_modules
 dist
+
+# Environment files (Supabase keys etc.) — never commit; copy .env.example to .env
+.env
 .env.local
 *.local
 .DS_Store
