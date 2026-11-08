@@ -1,10 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useRef } from "react";
 import { toast } from "sonner";
-import { Bell, BellOff, Download, Moon, Sun, Upload } from "lucide-react";
+import { Bell, BellOff, Download, Moon, ShieldCheck, Sun, Upload } from "lucide-react";
 import { Card, GhostButton, PageHeading, PrimaryButton, useConfirm } from "@/components/kit";
 import { accountCopy } from "@/lib/account-i18n";
 import { isNative } from "@/lib/native/platform";
+import { privacyDocs } from "@/lib/privacy-i18n";
 import { useApp } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -36,8 +37,16 @@ function Option({
 }
 
 function SettingsPage() {
-  const { t, settings, setTheme, setLang, notif, enableNotifications, exportBackup, restoreBackup } =
-    useApp();
+  const {
+    t,
+    settings,
+    setTheme,
+    setLang,
+    notif,
+    enableNotifications,
+    exportBackup,
+    restoreBackup,
+  } = useApp();
   const c = accountCopy[settings.lang];
   const { ask, dialog } = useConfirm();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -161,6 +170,12 @@ function SettingsPage() {
           />
         </div>
       </Card>
+      <Link
+        to="/privacy"
+        className="flex items-center gap-2 rounded-3xl border bg-card p-4 font-bold shadow-soft"
+      >
+        <ShieldCheck className="h-5 w-5 text-primary" /> {privacyDocs[settings.lang].linkLabel}
+      </Link>
       {dialog}
     </>
   );
