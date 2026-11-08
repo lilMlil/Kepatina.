@@ -90,6 +90,8 @@ export type Database = {
       create_family: { Args: { initial: Json }; Returns: string };
       delete_my_account: { Args: never; Returns: undefined };
       join_family: { Args: { code: string }; Returns: string };
+      leave_family: { Args: never; Returns: undefined };
+      regenerate_invite_code: { Args: never; Returns: string };
       my_family_id: { Args: never; Returns: string };
     };
     Enums: {
