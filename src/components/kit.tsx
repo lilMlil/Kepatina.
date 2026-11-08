@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from "react";
+import { useId, useRef, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { Camera, ChevronLeft, PawPrint } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,8 @@ export function Card({ className, children }: { className?: string; children: Re
   );
 }
 
+const backLabel = { lv: "Atpakaļ", en: "Back", ru: "Назад", fr: "Retour" } as const;
+
 export function PageHeading({
   eyebrow,
   title,
@@ -23,14 +25,16 @@ export function PageHeading({
   subtitle?: string;
   back?: string;
 }) {
+  const { settings } = useApp();
   return (
     <div className="space-y-1">
       {back && (
         <Link
           to={back}
-          className="mb-2 inline-flex items-center gap-1 text-sm font-bold text-primary"
+          aria-label={backLabel[settings.lang]}
+          className="mb-2 inline-flex min-h-11 min-w-11 items-center gap-1 text-sm font-bold text-primary"
         >
-          <ChevronLeft className="h-4 w-4" />
+          <ChevronLeft className="h-4 w-4" aria-hidden="true" />
         </Link>
       )}
       {eyebrow && (
@@ -57,6 +61,7 @@ export function Chip({
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={active}
       className={cn(
         "rounded-full border px-4 py-2 text-sm font-bold transition-colors",
         active
@@ -78,7 +83,7 @@ export function SpeciesSelector({
 }) {
   const { t } = useApp();
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-2" role="group" aria-label={t.animal}>
       {SPECIES.map((s) => (
         <Chip key={s} active={s === value} onClick={() => onChange(s)}>
           {speciesLabel(t, s)}
@@ -148,7 +153,7 @@ export function Avatar({
       {src ? (
         <img src={src} alt="" className="h-full w-full object-cover" />
       ) : (
-        <PawPrint style={{ width: size * 0.45, height: size * 0.45 }} />
+        <PawPrint aria-hidden="true" style={{ width: size * 0.45, height: size * 0.45 }} />
       )}
     </div>
   );
@@ -175,7 +180,7 @@ export function AvatarPicker({
       >
         <Avatar src={value} size={size} className="ring-4 ring-peach-soft" />
         <span className="absolute -bottom-1 -right-1 flex h-9 w-9 items-center justify-center rounded-full bg-accent text-accent-foreground shadow-soft">
-          <Camera className="h-4 w-4" />
+          <Camera className="h-4 w-4" aria-hidden="true" />
         </span>
       </button>
       <div className="flex flex-col items-start gap-1">
@@ -227,6 +232,8 @@ export function ConfirmDialog({
   onClose: () => void;
 }) {
   const { t } = useApp();
+  const titleId = useId();
+  const bodyId = useId();
   if (!open) return null;
   // Both buttons share exactly the same size and shape; the red one differs only by colour.
   const btn = "min-h-11 min-w-0 px-3 py-2 text-center text-sm leading-tight";
@@ -236,13 +243,19 @@ export function ConfirmDialog({
       onClick={onClose}
     >
       <div
-        role="dialog"
+        role="alertdialog"
         aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={bodyId}
         className="max-h-[85vh] w-full max-w-sm overflow-y-auto rounded-3xl bg-card p-5 shadow-soft"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-xl font-semibold text-primary">{title}</h2>
-        <p className="mt-2 text-sm text-muted-foreground">{body}</p>
+        <h2 id={titleId} className="text-xl font-semibold text-primary">
+          {title}
+        </h2>
+        <p id={bodyId} className="mt-2 text-sm text-muted-foreground">
+          {body}
+        </p>
         <div className="mt-5 grid grid-cols-2 gap-2">
           <GhostButton className={btn} onClick={onClose}>
             {t.cancel}
