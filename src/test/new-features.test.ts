@@ -23,6 +23,12 @@ describe("Seasonal care", () => {
     expect(tipsFor(2, "Kāmis")).toHaveLength(1);
     expect(tipsFor(2, "Putns")).toHaveLength(1);
   });
+  it("shows species-specific summer and winter tips for guinea pigs, reptiles and fish", () => {
+    for (const s of ["Jūrascūciņa", "Rāpuļi", "Zivtiņas"] as const) {
+      expect(tipsFor(2, s)).toHaveLength(2);
+      expect(tipsFor(0, s)).toHaveLength(2);
+    }
+  });
 });
 describe("Local notification plan", () => {
   const med: MedCourse = {
