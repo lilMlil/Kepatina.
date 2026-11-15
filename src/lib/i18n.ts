@@ -171,6 +171,9 @@ const lv = {
   spRabbit: "Trusis",
   spBird: "Putns",
   spHamster: "Kāmis",
+  spGuineaPig: "Jūrascūciņa",
+  spReptile: "Rāpuļi",
+  spFish: "Zivtiņas",
   notifPrefix: "Laiks parūpēties par",
 };
 
@@ -339,6 +342,9 @@ const en: BaseDict = {
   spRabbit: "Rabbit",
   spBird: "Bird",
   spHamster: "Hamster",
+  spGuineaPig: "Guinea pig",
+  spReptile: "Reptiles",
+  spFish: "Fish",
   notifPrefix: "Time to care for",
 };
 
@@ -509,6 +515,9 @@ const ru: BaseDict = {
   spRabbit: "Кролик",
   spBird: "Птица",
   spHamster: "Хомяк",
+  spGuineaPig: "Морская свинка",
+  spReptile: "Рептилии",
+  spFish: "Рыбки",
   notifPrefix: "Пора позаботиться о",
 };
 
@@ -680,6 +689,9 @@ const fr: BaseDict = {
   spRabbit: "Lapin",
   spBird: "Oiseau",
   spHamster: "Hamster",
+  spGuineaPig: "Cochon d’Inde",
+  spReptile: "Reptiles",
+  spFish: "Poissons",
   notifPrefix: "Il est temps de prendre soin de",
 };
 
