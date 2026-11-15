@@ -35,6 +35,10 @@ describe("Vaccination schedule", () => {
   it("has no routine vaccines for hamsters", () => {
     expect(vaccinationPlan("Kāmis", "2026-01-01", [], "2026-03-01")).toEqual([]);
   });
+  it("has no routine vaccines for guinea pigs, reptiles and fish", () => {
+    for (const s of ["Jūrascūciņa", "Rāpuļi", "Zivtiņas"] as const)
+      expect(vaccinationPlan(s, "2026-01-01", [], "2026-03-01")).toEqual([]);
+  });
 });
 
 describe("Food safety data", () => {
