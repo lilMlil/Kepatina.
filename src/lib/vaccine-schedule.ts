@@ -138,6 +138,9 @@ export const VACCINE_SCHEDULE: Record<Species, ScheduleItem[]> = {
   ],
   Putns: [],
   Kāmis: [],
+  Jūrascūciņa: [],
+  Rāpuļi: [],
+  Zivtiņas: [],
 };
 
 export type PlanStatus = "done" | "overdue" | "soon" | "upcoming";
