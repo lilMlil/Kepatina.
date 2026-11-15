@@ -29,6 +29,12 @@ describe("health journal helpers", () => {
     expect(formatWeightDelta(-0.015, "Putns")).toBe("−15 g");
     expect(formatWeightDelta(0, "Suns")).toBe("0 kg");
   });
+  it("shows reptiles and fish in grams and guinea pigs in kilograms", () => {
+    expect(formatWeight(0.35, "Rāpuļi")).toBe("350 g");
+    expect(formatWeight(0.012, "Zivtiņas")).toBe("12 g");
+    expect(formatWeight(1.05, "Jūrascūciņa")).toBe("1.05 kg");
+    expect(chartValue(0.35, "Rāpuļi")).toBe(350);
+  });
   it("sorts by date and finds the latest weight", () => {
     const w = [
       { id: "1", petId: "a", date: "2026-03-01", kg: 5 },
