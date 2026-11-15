@@ -345,6 +345,177 @@ const items: Item[] = [
       fr: "Gardez les hamsters syriens seuls — ils peuvent se battre s’ils cohabitent",
     },
   },
+
+  // ---- guinea pig ----
+  {
+    id: "gp1",
+    group: "before",
+    species: ["Jūrascūciņa"],
+    text: {
+      lv: "Sagatavo plašu būri ar cietu grīdu (nevis režģi), slēptuvēm un biezu pakaišu kārtu",
+      en: "Prepare a roomy cage with a solid floor (not wire), hiding places and thick bedding",
+      ru: "Подготовьте просторную клетку со сплошным дном (не решётка), домиками для укрытия и толстым слоем подстилки",
+      fr: "Préparez une grande cage à fond plein (pas à grille), avec des cachettes et une litière épaisse",
+    },
+  },
+  {
+    id: "gp2",
+    group: "before",
+    species: ["Jūrascūciņa"],
+    text: {
+      lv: "Nodrošini pastāvīgu piekļuvi sienam un katru dienu dod svaigus dārzeņus ar C vitamīnu (piem., papriku) — jūrascūciņa pati C vitamīnu neveido",
+      en: "Give constant access to hay and fresh vegetables rich in vitamin C daily (e.g. bell pepper) — guinea pigs cannot make vitamin C themselves",
+      ru: "Обеспечьте постоянный доступ к сену и ежедневно давайте свежие овощи с витамином C (например, перец) — морская свинка не вырабатывает витамин C сама",
+      fr: "Assurez un accès permanent au foin et donnez chaque jour des légumes frais riches en vitamine C (p. ex. poivron) — le cochon d’Inde ne la fabrique pas lui-même",
+    },
+  },
+  {
+    id: "gp3",
+    group: "week",
+    species: ["Jūrascūciņa"],
+    text: {
+      lv: "Jūrascūciņas ir sabiedriskas — labāk tās dzīvo pa pāriem vai grupā; saderību un dzimumu apspried ar veterinārārstu",
+      en: "Guinea pigs are social — they do best in pairs or groups; talk to your vet about compatibility and sexes",
+      ru: "Морские свинки — социальные животные: лучше всего им живётся парой или группой; совместимость и пол обсудите с ветеринаром",
+      fr: "Les cochons d’Inde sont sociables : ils vivent mieux en duo ou en groupe ; parlez de la compatibilité et des sexes avec votre vétérinaire",
+    },
+  },
+  {
+    id: "gp4",
+    group: "week",
+    species: ["Jūrascūciņa"],
+    text: {
+      lv: "Atrodi ārstu, kas labi pārzina grauzējus un jūrascūciņas",
+      en: "Find a vet experienced with guinea pigs and small rodents",
+      ru: "Найдите ветеринара, который разбирается в морских свинках и грызунах",
+      fr: "Trouvez un vétérinaire qui connaît bien les cochons d’Inde et les rongeurs",
+    },
+  },
+  {
+    id: "gp5",
+    group: "month",
+    species: ["Jūrascūciņa"],
+    text: {
+      lv: "Reizi nedēļā nosver jūrascūciņu un pieraksti svaru — svara kritums ir agrīna slimības pazīme",
+      en: "Weigh your guinea pig weekly and record it — weight loss is an early sign of illness",
+      ru: "Раз в неделю взвешивайте морскую свинку и записывайте вес — потеря веса — ранний признак болезни",
+      fr: "Pesez votre cochon d’Inde chaque semaine et notez le poids — une perte de poids est un signe précoce de maladie",
+    },
+  },
+
+  // ---- reptiles ----
+  {
+    id: "rep1",
+    group: "before",
+    species: ["Rāpuļi"],
+    text: {
+      lv: "Pirms izvēlies sugu, noskaidro tās vajadzības (temperatūra, mitrums, UV gaisma, barība, izaugsmes izmērs) un vai tās turēšanai nav ierobežojumu",
+      en: "Before choosing a species, learn its needs (temperature, humidity, UV light, diet, adult size) and whether any rules restrict keeping it",
+      ru: "Перед выбором вида узнайте его потребности (температура, влажность, УФ-свет, питание, размер взрослой особи) и нет ли ограничений на содержание",
+      fr: "Avant de choisir une espèce, renseignez-vous sur ses besoins (température, humidité, UV, alimentation, taille adulte) et sur d’éventuelles restrictions",
+    },
+  },
+  {
+    id: "rep2",
+    group: "before",
+    species: ["Rāpuļi"],
+    text: {
+      lv: "Sagatavo terāriju ar siltu un vēsāku zonu, termometriem, slēptuvēm un drošu vāku pirms dzīvnieka atvešanas",
+      en: "Set up the terrarium with a warm and a cooler zone, thermometers, hides and a secure lid before bringing your pet home",
+      ru: "Подготовьте террариум с тёплой и более прохладной зонами, термометрами, укрытиями и надёжной крышкой до появления питомца",
+      fr: "Installez le terrarium avec une zone chaude et une zone plus fraîche, des thermomètres, des cachettes et un couvercle sûr avant l’arrivée de l’animal",
+    },
+  },
+  {
+    id: "rep3",
+    group: "week",
+    species: ["Rāpuļi"],
+    text: {
+      lv: "Uzzini sugai atbilstošu barību (kukaiņi, dārzeņi vai pilni barības dzīvnieki) un kalcija un vitamīnu piedevu plānu",
+      en: "Learn the right diet for your species (insects, vegetables or whole prey) and a plan for calcium and vitamin supplements",
+      ru: "Узнайте подходящее виду питание (насекомые, овощи или целые кормовые животные) и план кальция и витаминных добавок",
+      fr: "Renseignez-vous sur l’alimentation de votre espèce (insectes, légumes ou proies entières) et sur un plan de calcium et de vitamines",
+    },
+  },
+  {
+    id: "rep4",
+    group: "week",
+    species: ["Rāpuļi"],
+    text: {
+      lv: "Atrodi ārstu, kas labi pārzina rāpuļus",
+      en: "Find a vet experienced with reptiles",
+      ru: "Найдите ветеринара, который разбирается в рептилиях",
+      fr: "Trouvez un vétérinaire qui connaît bien les reptiles",
+    },
+  },
+  {
+    id: "rep5",
+    group: "month",
+    species: ["Rāpuļi"],
+    text: {
+      lv: "Pēc saskares ar rāpuli, terāriju vai barību mazgā rokas — rāpuļi var pārnēsāt salmonellas",
+      en: "Wash your hands after touching your reptile, terrarium or food — reptiles can carry Salmonella",
+      ru: "Мойте руки после контакта с рептилией, террариумом или кормом — рептилии могут переносить сальмонеллу",
+      fr: "Lavez-vous les mains après avoir touché le reptile, le terrarium ou la nourriture — les reptiles peuvent porter des salmonelles",
+    },
+  },
+
+  // ---- fish ----
+  {
+    id: "fish1",
+    group: "before",
+    species: ["Zivtiņas"],
+    text: {
+      lv: "Uzsāc akvāriju vairākas nedēļas pirms zivju iegādes, lai izveidotos labvēlīgās baktērijas (slāpekļa cikls)",
+      en: "Set up the aquarium several weeks before buying fish so beneficial bacteria can establish (nitrogen cycle)",
+      ru: "Запустите аквариум за несколько недель до покупки рыб, чтобы сформировались полезные бактерии (азотный цикл)",
+      fr: "Installez l’aquarium plusieurs semaines avant d’acheter les poissons pour que les bactéries utiles s’installent (cycle de l’azote)",
+    },
+  },
+  {
+    id: "fish2",
+    group: "before",
+    species: ["Zivtiņas"],
+    text: {
+      lv: "Izvēlies akvāriju pēc zivju sugas, izmēra un skaita un pārbaudi, vai sugas savā starpā sader",
+      en: "Choose a tank to suit the species, adult size and number of fish, and check the species are compatible",
+      ru: "Выберите аквариум по виду, размеру и количеству рыб и проверьте совместимость видов",
+      fr: "Choisissez un aquarium adapté à l’espèce, à la taille adulte et au nombre de poissons, et vérifiez la compatibilité des espèces",
+    },
+  },
+  {
+    id: "fish3",
+    group: "before",
+    species: ["Zivtiņas"],
+    text: {
+      lv: "Lieto ūdens kondicionieri, kas neitralizē hloru — nekad nelej akvārijā neapstrādātu krāna ūdeni",
+      en: "Use a water conditioner that removes chlorine — never add untreated tap water to the tank",
+      ru: "Используйте кондиционер, нейтрализующий хлор, — никогда не наливайте в аквариум необработанную водопроводную воду",
+      fr: "Utilisez un conditionneur qui neutralise le chlore — n’ajoutez jamais d’eau du robinet non traitée",
+    },
+  },
+  {
+    id: "fish4",
+    group: "week",
+    species: ["Zivtiņas"],
+    text: {
+      lv: "Jaunās zivis pakāpeniski pieradini pie akvārija ūdens temperatūras un pārbaudi ūdeni (amonjaks, nitrīti, nitrāti)",
+      en: "Acclimatise new fish gradually to the tank temperature and test the water (ammonia, nitrite, nitrate)",
+      ru: "Постепенно приучайте новых рыб к температуре воды и проверяйте воду (аммиак, нитриты, нитраты)",
+      fr: "Acclimatez progressivement les nouveaux poissons à la température de l’aquarium et testez l’eau (ammoniac, nitrites, nitrates)",
+    },
+  },
+  {
+    id: "fish5",
+    group: "month",
+    species: ["Zivtiņas"],
+    text: {
+      lv: "Regulāri nomaini daļu ūdens un baro mazliet — pārbarošana ir biežākā ūdens problēmu cēlonis",
+      en: "Change part of the water regularly and feed lightly — overfeeding is the most common cause of water problems",
+      ru: "Регулярно меняйте часть воды и кормите понемногу — перекорм — самая частая причина проблем с водой",
+      fr: "Changez régulièrement une partie de l’eau et nourrissez peu — la suralimentation est la cause la plus fréquente de problèmes d’eau",
+    },
+  },
 ];
 
 const ui: Record<
