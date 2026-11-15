@@ -27,6 +27,8 @@ const symptoms: {
   id: string;
   risk: Risk;
   only?: Species[];
+  /** Species this symptom does not apply to. */
+  not?: Species[];
   lv: [string, string];
   en: [string, string];
   ru: [string, string];
@@ -35,6 +37,7 @@ const symptoms: {
   {
     id: "breathing",
     risk: "red",
+    not: ["Zivtiņas"],
     lv: ["Apgrūtināta elpošana", "Apgrūtināta elpošana, smakšana vai zilgana mēle."],
     en: ["Difficulty breathing", "Laboured breathing, choking or a bluish tongue."],
     ru: ["Затруднённое дыхание", "Дышит с усилием, задыхается или язык синеватый."],
@@ -43,6 +46,7 @@ const symptoms: {
   {
     id: "collapse",
     risk: "red",
+    not: ["Zivtiņas"],
     lv: ["Kolapss vai bezsamaņa", "Mīlulis nereaģē vai nespēj nostāvēt."],
     en: ["Collapse or unconsciousness", "Not responding or unable to stand."],
     ru: ["Коллапс или потеря сознания", "Не реагирует или не может стоять."],
@@ -75,6 +79,7 @@ const symptoms: {
   {
     id: "vomiting",
     risk: "yellow",
+    not: ["Zivtiņas"],
     lv: ["Atkārtota vemšana vai caureja", "Atkārtojas, ir asinis vai mīlulis kļūst vājš."],
     en: [
       "Repeated vomiting or diarrhoea",
@@ -117,6 +122,7 @@ const symptoms: {
   {
     id: "sneeze",
     risk: "green",
+    not: ["Zivtiņas"],
     lv: ["Viena viegla šķaudīšana", "Citādi aktīvs, elpo normāli un ēd kā parasti."],
     en: ["A single mild sneeze", "Otherwise active, breathing and eating normally."],
     ru: ["Однократное лёгкое чихание", "В остальном активен, нормально дышит и ест."],
@@ -145,6 +151,7 @@ const symptoms: {
   {
     id: "heatstroke",
     risk: "red",
+    not: ["Zivtiņas"],
     lv: ["Pārkaršana", "Spēcīgi elš, siekalojas, vājš vai ir bijis karstumā vai aizvērtā auto."],
     en: [
       "Overheating (heatstroke)",
@@ -286,6 +293,195 @@ const symptoms: {
     ],
   },
   {
+    id: "gp_gut",
+    risk: "red",
+    only: ["Jūrascūciņa"],
+    lv: [
+      "Jūrascūciņa neēd un nekaka",
+      "Neēd ilgāk par 12 stundām, nav izkārnījumu, vēders pietūcis, sēž saspiedusies un klusē. Jūrascūciņām tas var kļūt bīstami ātri.",
+    ],
+    en: [
+      "Guinea pig not eating or pooping",
+      "Not eating for over 12 hours, no droppings, bloated belly, sitting hunched and quiet. This can become dangerous quickly in guinea pigs.",
+    ],
+    ru: [
+      "Морская свинка не ест и нет помёта",
+      "Не ест дольше 12 часов, нет помёта, вздутый живот, сидит сжавшись и затихла. У морских свинок это быстро становится опасным.",
+    ],
+    fr: [
+      "Cochon d’Inde qui ne mange plus et ne crotte plus",
+      "Ne mange pas depuis plus de 12 h, pas de crottes, ventre gonflé, posture recroquevillée et silencieuse. Cela peut vite devenir dangereux chez le cochon d’Inde.",
+    ],
+  },
+  {
+    id: "gp_vitc",
+    risk: "yellow",
+    only: ["Jūrascūciņa"],
+    lv: [
+      "Neveikli kustas, sāp locītavas, grūti ēst",
+      "Negrib kustēties, ķepas vai locītavas sāp, apmatojums raupjš, smaganas asiņo vai ēd negribīgi. Iespējams C vitamīna trūkums.",
+    ],
+    en: [
+      "Reluctant to move, sore joints, trouble eating",
+      "Does not want to move, painful paws or joints, rough coat, bleeding gums or eating reluctantly. Vitamin C deficiency is possible.",
+    ],
+    ru: [
+      "Неохотно двигается, болят суставы, трудно есть",
+      "Не хочет двигаться, болят лапки или суставы, шерсть взъерошена, дёсны кровоточат или ест неохотно. Возможна нехватка витамина C.",
+    ],
+    fr: [
+      "Se déplace difficilement, articulations douloureuses, mange mal",
+      "Ne veut pas bouger, pattes ou articulations douloureuses, poil terne, gencives qui saignent ou mange avec réticence. Une carence en vitamine C est possible.",
+    ],
+  },
+  {
+    id: "gp_teeth",
+    risk: "yellow",
+    only: ["Jūrascūciņa"],
+    lv: [
+      "Siekalojas, met barību laukā vai krīt svarā",
+      "Siekalojas, ēdot met barību laukā, izvēlas tikai mīkstu barību vai zaudē svaru. Iespējamas zobu problēmas.",
+    ],
+    en: [
+      "Drooling, dropping food or losing weight",
+      "Drools, drops food while eating, only chooses soft food or loses weight. Dental problems are possible.",
+    ],
+    ru: [
+      "Слюнотечение, роняет корм или худеет",
+      "Слюни, роняет корм при еде, выбирает только мягкую еду или теряет вес. Возможны проблемы с зубами.",
+    ],
+    fr: [
+      "Salivation, laisse tomber la nourriture ou maigrit",
+      "Bave, laisse tomber la nourriture en mangeant, ne choisit que du mou ou perd du poids. Des problèmes dentaires sont possibles.",
+    ],
+  },
+  {
+    id: "rep_breath",
+    risk: "red",
+    only: ["Rāpuļi"],
+    lv: [
+      "Elpo ar atvērtu muti vai burbuļi pie deguna",
+      "Elpo ar atvērtu muti, sēc, deguna vai mutes izdalījumi, burbuļi, slinks un neēd. Iespējama elpceļu infekcija.",
+    ],
+    en: [
+      "Open-mouth breathing or bubbles at the nose",
+      "Breathes with an open mouth, wheezing, nasal or mouth discharge, bubbles, lethargic and not eating. A respiratory infection is possible.",
+    ],
+    ru: [
+      "Дышит с открытым ртом или пузыри у носа",
+      "Дышит с открытым ртом, хрипы, выделения из носа или рта, пузыри, вялая и не ест. Возможна инфекция дыхательных путей.",
+    ],
+    fr: [
+      "Respire la bouche ouverte ou bulles au nez",
+      "Respire la bouche ouverte, sifflements, écoulements nasaux ou buccaux, bulles, apathique et ne mange pas. Une infection respiratoire est possible.",
+    ],
+  },
+  {
+    id: "rep_bones",
+    risk: "yellow",
+    only: ["Rāpuļi"],
+    lv: [
+      "Trīce, mīksti kauli vai grūti kustēties",
+      "Trīc ķepas vai kakls, žoklis vai kauli šķiet mīksti, ķepas ir izliektas, dzīvnieks velk ķermeni. Iespējams kalcija vai D vitamīna/UV trūkums.",
+    ],
+    en: [
+      "Tremors, soft bones or trouble moving",
+      "Twitching legs or neck, jaw or bones feel soft, bent limbs, dragging the body. Calcium or vitamin D/UV deficiency is possible.",
+    ],
+    ru: [
+      "Дрожь, мягкие кости или трудно двигаться",
+      "Дрожат лапы или шея, челюсть или кости мягкие, лапы искривлены, волочит тело. Возможна нехватка кальция или витамина D/УФ.",
+    ],
+    fr: [
+      "Tremblements, os mous ou difficulté à bouger",
+      "Pattes ou cou qui tremblent, mâchoire ou os mous, membres tordus, corps traîné. Une carence en calcium ou en vitamine D/UV est possible.",
+    ],
+  },
+  {
+    id: "rep_shed",
+    risk: "yellow",
+    only: ["Rāpuļi"],
+    lv: [
+      "Āda nenolobījusies pilnībā",
+      "Vecā āda paliek uz pirkstiem, astes gala vai ap acīm. Pārbaudi mitrumu un konsultējies ar veterinārārstu; neplēs ādu ar spēku.",
+    ],
+    en: [
+      "Incomplete shedding",
+      "Old skin stays on toes, the tail tip or around the eyes. Check humidity and ask your vet; do not pull skin off by force.",
+    ],
+    ru: [
+      "Неполная линька",
+      "Старая кожа остаётся на пальцах, кончике хвоста или вокруг глаз. Проверьте влажность и посоветуйтесь с ветеринаром; не срывайте кожу силой.",
+    ],
+    fr: [
+      "Mue incomplète",
+      "L’ancienne peau reste sur les doigts, le bout de la queue ou autour des yeux. Vérifiez l’humidité et consultez le vétérinaire ; n’arrachez pas la peau de force.",
+    ],
+  },
+  {
+    id: "fish_gasp",
+    risk: "red",
+    only: ["Zivtiņas"],
+    lv: [
+      "Zivis elpo pie virsmas",
+      "Zivis gaida pie ūdens virsmas, ātri kustina žaunas vai guļ uz dibena. Pārbaudi skābekli, ūdens temperatūru un amonjaku; nekavējoties daļēji nomaini ūdeni.",
+    ],
+    en: [
+      "Fish gasping at the surface",
+      "Fish hang at the surface, breathe fast or lie on the bottom. Check oxygen, water temperature and ammonia; do a partial water change straight away.",
+    ],
+    ru: [
+      "Рыбы дышат у поверхности",
+      "Рыбы держатся у поверхности, часто дышат или лежат на дне. Проверьте кислород, температуру воды и аммиак; сразу замените часть воды.",
+    ],
+    fr: [
+      "Poissons qui haletent en surface",
+      "Les poissons restent en surface, respirent vite ou gisent au fond. Vérifiez l’oxygène, la température et l’ammoniaque ; changez aussitôt une partie de l’eau.",
+    ],
+  },
+  {
+    id: "fish_spots",
+    risk: "yellow",
+    only: ["Zivtiņas"],
+    lv: [
+      "Baltas pūtītes, saspiestas spuras vai plēve",
+      "Uz ķermeņa baltas pūtītes vai plēve, spuras saspiestas, zivs berzējas pret dekoriem vai neēd. Atdali slimo zivi un konsultējies ar speciālistu.",
+    ],
+    en: [
+      "White spots, clamped fins or a film",
+      "White spots or a film on the body, clamped fins, rubbing against decor or not eating. Isolate the sick fish and ask a specialist.",
+    ],
+    ru: [
+      "Белые точки, прижатые плавники или налёт",
+      "Белые точки или налёт на теле, плавники прижаты, трётся о декор или не ест. Отсадите больную рыбу и посоветуйтесь со специалистом.",
+    ],
+    fr: [
+      "Points blancs, nageoires collées ou voile",
+      "Points blancs ou voile sur le corps, nageoires collées, se frotte au décor ou ne mange pas. Isolez le poisson malade et demandez conseil à un spécialiste.",
+    ],
+  },
+  {
+    id: "fish_float",
+    risk: "yellow",
+    only: ["Zivtiņas"],
+    lv: [
+      "Zivs peld sāniski, otrādi vai nespēj noturēt dziļumu",
+      "Peld uz sāniem, ar vēderu uz augšu vai nevar noturēt dziļumu. Pārbaudi ūdeni, temperatūru un barošanu; ja nepāriet, jautā speciālistam.",
+    ],
+    en: [
+      "Fish swimming sideways, upside down or unable to hold depth",
+      "Swims on its side, belly up or cannot hold its depth. Check the water, temperature and feeding; ask a specialist if it persists.",
+    ],
+    ru: [
+      "Рыба плавает боком, вверх брюхом или не держит глубину",
+      "Плавает на боку, брюхом вверх или не может удерживать глубину. Проверьте воду, температуру и кормление; если не проходит, обратитесь к специалисту.",
+    ],
+    fr: [
+      "Poisson qui nage sur le côté, ventre en l’air ou ne tient pas sa profondeur",
+      "Nage sur le côté, ventre en l’air ou ne tient pas sa profondeur. Vérifiez l’eau, la température et l’alimentation ; consultez un spécialiste si cela persiste.",
+    ],
+  },
+  {
     id: "eye",
     risk: "yellow",
     lv: [
@@ -305,6 +501,7 @@ const symptoms: {
   {
     id: "limp",
     risk: "yellow",
+    not: ["Zivtiņas"],
     lv: ["Klibo vai nevar uzkāpt uz ķepas", "Sargā ķepu, nelec, ir pietūkums vai sāpīga vieta."],
     en: [
       "Limping or not putting weight on a paw",
@@ -361,7 +558,7 @@ const symptoms: {
   {
     id: "ear",
     risk: "yellow",
-    only: ["Suns", "Kaķis", "Trusis"],
+    only: ["Suns", "Kaķis", "Trusis", "Jūrascūciņa"],
     lv: ["Kratīta galva vai skrāpē ausis", "Ausis smird, ir tumši izdalījumi vai sarkanums."],
     en: ["Shaking head or scratching ears", "Smelly ears, dark discharge or redness."],
     ru: ["Трясёт головой или чешет уши", "Уши пахнут, тёмные выделения или покраснение."],
@@ -391,6 +588,7 @@ const symptoms: {
   {
     id: "skin",
     risk: "yellow",
+    not: ["Zivtiņas", "Rāpuļi"],
     lv: ["Niez āda vai izkrīt spalva", "Pastāvīga skrāpēšanās, kailas vietas, krepes vai blaktis."],
     en: ["Itchy skin or hair loss", "Constant scratching, bald patches, scabs or fleas."],
     ru: ["Зуд кожи или выпадение шерсти", "Постоянно чешется, лысые пятна, корочки или блохи."],
@@ -399,6 +597,7 @@ const symptoms: {
   {
     id: "soft_stool",
     risk: "green",
+    not: ["Zivtiņas"],
     lv: ["Vienreizēji mīksti izkārnījumi", "Citādi mīlulis ir mundrs, ēd un dzer kā parasti."],
     en: ["A single soft stool", "Otherwise your pet is bright and eating and drinking normally."],
     ru: ["Единичный мягкий стул", "В остальном питомец бодр, ест и пьёт как обычно."],
@@ -967,7 +1166,9 @@ function SymptomsPage() {
   const [override, setOverride] = useState<Species | null>(null);
   const species = override ?? selectedPet?.species ?? "Suns";
   const [sel, setSel] = useState<string | null>(null);
-  const visible = symptoms.filter((x) => !x.only || x.only.includes(species));
+  const visible = symptoms.filter(
+    (x) => (!x.only || x.only.includes(species)) && !x.not?.includes(species),
+  );
   const s = visible.find((x) => x.id === sel);
   const lang = settings.lang;
   const style = {
