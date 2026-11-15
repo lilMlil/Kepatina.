@@ -30,10 +30,10 @@ export const careGuides: CareGuide[] = [
           "Kucēnam vai kaķēnam izvēlies pilnvērtīgu augšanai paredzētu barību; lielo šķirņu kucēniem — viņu izmēram piemērotu. Porciju un ēdienreižu skaitu saskaņo ar veterinārārstu.",
           "Pieaugušam sunim vai kaķim porcijas pielāgo svaram, aktivitātei un ķermeņa kondīcijai. Senioram barību izvēlies pēc veselības, nevis tikai vecuma.",
           "Barību maini pakāpeniski. Vienmēr nodrošini svaigu ūdeni; nedod uztura piedevas bez ārsta norādes.",
-          "Trušiem siens ir uztura pamats; jauna truša uzturs atšķiras no pieauguša. Putniem un kāmjiem vajadzīga tieši sugai piemērota barība.",
+          "Trušiem siens ir uztura pamats; jauna truša uzturs atšķiras no pieauguša. Putniem un kāmjiem vajadzīga tieši sugai piemērota barība. Jūrascūciņām katru dienu vajadzīgs C vitamīns, rāpuļiem — sugai atbilstoša barība un kalcijs, zivīm — nelielas porcijas, ko tās apēd dažu minūšu laikā.",
         ],
         warning:
-          "Ja trusis pārstāj ēst vai izkārnīties, steidzami sazinies ar veterinārārstu. Jaunam vai slimam dzīvniekam apetītes zudumu neatliec uz vēlāku.",
+          "Ja trusis vai jūrascūciņa pārstāj ēst vai izkārnīties, steidzami sazinies ar veterinārārstu. Jaunam vai slimam dzīvniekam apetītes zudumu neatliec uz vēlāku.",
       },
       en: {
         title: "Feeding for every life stage",
@@ -42,10 +42,10 @@ export const careGuides: CareGuide[] = [
           "Choose complete growth food for puppies and kittens; large-breed puppies need food suited to their size. Agree portions and meal frequency with your vet.",
           "For adult dogs and cats, adjust portions to weight, activity and body condition. Choose a senior pet’s diet for their health, not age alone.",
           "Change food gradually. Keep fresh water available and avoid supplements unless your vet recommends them.",
-          "Hay is the foundation of a rabbit’s diet; young rabbits have different needs from adults. Birds and hamsters need food appropriate to their species.",
+          "Hay is the foundation of a rabbit’s diet; young rabbits have different needs from adults. Birds and hamsters need food appropriate to their species. Guinea pigs need vitamin C every day, reptiles need a species-appropriate diet plus calcium, and fish need small portions they finish within a few minutes.",
         ],
         warning:
-          "If a rabbit stops eating or passing droppings, contact a vet urgently. Do not delay care for loss of appetite in a young or ill animal.",
+          "If a rabbit or guinea pig stops eating or passing droppings, contact a vet urgently. Do not delay care for loss of appetite in a young or ill animal.",
       },
       ru: {
         title: "Питание по возрасту",
@@ -54,10 +54,10 @@ export const careGuides: CareGuide[] = [
           "Щенкам и котятам нужен полнорационный корм для роста, а щенкам крупных пород — подходящий их размеру. Порции и частоту кормления согласуйте с ветеринаром.",
           "Взрослым собакам и кошкам подбирайте порции по весу, активности и упитанности. Пожилому питомцу выбирайте рацион по состоянию здоровья, а не только по возрасту.",
           "Меняйте корм постепенно. Свежая вода должна быть всегда; не давайте добавки без рекомендации ветеринара.",
-          "Основа рациона кролика — сено; питание молодых кроликов отличается от питания взрослых. Птицам и хомякам нужен корм для их вида.",
+          "Основа рациона кролика — сено; питание молодых кроликов отличается от питания взрослых. Птицам и хомякам нужен корм для их вида. Морским свинкам ежедневно нужен витамин C, рептилиям — рацион для их вида и кальций, рыбам — небольшие порции, которые они съедают за несколько минут.",
         ],
         warning:
-          "Если кролик перестал есть или выделять помёт, срочно свяжитесь с ветеринаром. Не откладывайте помощь при потере аппетита у молодого или больного животного.",
+          "Если кролик или морская свинка перестали есть или выделять помёт, срочно свяжитесь с ветеринаром. Не откладывайте помощь при потере аппетита у молодого или больного животного.",
       },
       fr: {
         title: "Une alimentation adaptée à l’âge",
@@ -66,10 +66,10 @@ export const careGuides: CareGuide[] = [
           "Choisissez un aliment complet de croissance pour chiots et chatons, adapté au gabarit pour les chiots de grande race. Fixez les portions et la fréquence des repas avec le vétérinaire.",
           "Pour les chiens et chats adultes, adaptez les portions au poids, à l’activité et à l’état corporel. Pour un animal âgé, tenez compte de sa santé, pas seulement de son âge.",
           "Changez d’aliment progressivement. Laissez de l’eau fraîche disponible et évitez les compléments sans avis vétérinaire.",
-          "Le foin est la base de l’alimentation du lapin ; les jeunes ont des besoins différents des adultes. Oiseaux et hamsters ont besoin d’un régime adapté à leur espèce.",
+          "Le foin est la base de l’alimentation du lapin ; les jeunes ont des besoins différents des adultes. Oiseaux et hamsters ont besoin d’un régime adapté à leur espèce. Les cochons d’Inde ont besoin de vitamine C chaque jour, les reptiles d’un régime adapté à l’espèce avec du calcium, et les poissons de petites portions consommées en quelques minutes.",
         ],
         warning:
-          "Si un lapin cesse de manger ou de produire des crottes, contactez rapidement un vétérinaire. Ne tardez pas face à une perte d’appétit chez un animal jeune ou malade.",
+          "Si un lapin ou un cochon d’Inde cesse de manger ou de produire des crottes, contactez rapidement un vétérinaire. Ne tardez pas face à une perte d’appétit chez un animal jeune ou malade.",
       },
     },
   },
@@ -146,7 +146,7 @@ export const careGuides: CareGuide[] = [
           "Karstumā pastaigājies vēsākajās stundās, nodrošini ēnu, ūdeni un gaisa apmaiņu. Nekad neatstāj dzīvnieku stāvošā automašīnā; izvairies no sakarsuša seguma.",
           "Ja ir aizdomas par pārkaršanu, pārvieto mīluli vēsumā, sāc dzesēt ar ūdeni, kas vēsāks par ķermeni, un gaisa plūsmu; vienlaikus zvani klīnikai. Neietin slapjos dvieļos un nespied dzert.",
           "Aukstumā saīsini pastaigas un pielāgo tās mīluļa veselībai un apmatojumam. Pēc pastaigas noskalo sāli no ķepām un nosusini kažoku; antifrīzu turi nepieejamu.",
-          "Trušus, putnus un kāmjus sargā no tiešas saules, caurvēja un krasām temperatūras maiņām. Ārā dzīvojošam trusim vajadzīga sausa, pasargāta mītne un neaizsalis ūdens.",
+          "Trušus, putnus un kāmjus sargā no tiešas saules, caurvēja un krasām temperatūras maiņām. Ārā dzīvojošam trusim vajadzīga sausa, pasargāta mītne un neaizsalis ūdens. Jūrascūciņas ļoti slikti panes karstumu; rāpuļiem un zivīm vajadzīga stabila, sugai piemērota temperatūra — pārbaudi to ar termometru.",
         ],
         warning:
           "Smaga elpošana, vājums, apjukums vai sabrukums karstumā, kā arī izteikta apātija aukstumā ir neatliekama situācija. Dzesēšana nedrīkst aizkavēt palīdzību.",
@@ -158,7 +158,7 @@ export const careGuides: CareGuide[] = [
           "In heat, walk during cooler hours and provide shade, water and ventilation. Never leave a pet in a parked car; avoid hot surfaces.",
           "If overheating is suspected, move to a cool place and start cooling with water cooler than the body and airflow while calling the clinic. Do not wrap in wet towels or force drinking.",
           "In cold weather, shorten walks according to health and coat. Rinse salt off paws and dry the coat afterwards; keep antifreeze out of reach.",
-          "Protect rabbits, birds and hamsters from direct sun, draughts and sudden temperature changes. Outdoor rabbits need dry sheltered housing and unfrozen water.",
+          "Protect rabbits, birds and hamsters from direct sun, draughts and sudden temperature changes. Outdoor rabbits need dry sheltered housing and unfrozen water. Guinea pigs cope very badly with heat; reptiles and fish need a stable, species-appropriate temperature — check it with a thermometer.",
         ],
         warning:
           "Severe breathing difficulty, weakness, confusion or collapse in heat, or marked lethargy in cold, is an emergency. Cooling must not delay veterinary help.",
@@ -170,7 +170,7 @@ export const careGuides: CareGuide[] = [
           "В жару гуляйте в прохладные часы, обеспечьте тень, воду и вентиляцию. Никогда не оставляйте питомца в припаркованной машине; избегайте горячего покрытия.",
           "При подозрении на перегрев перенесите питомца в прохладу, начните охлаждать водой прохладнее тела и потоком воздуха, одновременно звоня в клинику. Не заворачивайте в мокрые полотенца и не заставляйте пить.",
           "В мороз сокращайте прогулки с учётом здоровья и шерсти. Смывайте соль с лап и высушивайте шерсть; храните антифриз вне доступа.",
-          "Берегите кроликов, птиц и хомяков от прямого солнца, сквозняков и резких перепадов температуры. Уличному кролику нужны сухое укрытие и незамёрзшая вода.",
+          "Берегите кроликов, птиц и хомяков от прямого солнца, сквозняков и резких перепадов температуры. Уличному кролику нужны сухое укрытие и незамёрзшая вода. Морские свинки очень плохо переносят жару; рептилиям и рыбам нужна стабильная температура, подходящая их виду, — проверяйте её термометром.",
         ],
         warning:
           "Тяжёлое дыхание, слабость, спутанность или коллапс в жару, а также выраженная вялость на морозе — неотложная ситуация. Охлаждение не должно задерживать помощь ветеринара.",
@@ -182,7 +182,7 @@ export const careGuides: CareGuide[] = [
           "Par chaleur, sortez aux heures fraîches et prévoyez ombre, eau et ventilation. Ne laissez jamais un animal dans une voiture stationnée ; évitez les sols brûlants.",
           "En cas de surchauffe suspectée, mettez l’animal au frais et commencez à le refroidir avec de l’eau plus fraîche que son corps et de l’air, tout en appelant la clinique. Ne l’enveloppez pas de serviettes mouillées et ne le forcez pas à boire.",
           "Par froid, raccourcissez les sorties selon sa santé et son pelage. Rincez le sel des pattes et séchez le pelage ; gardez l’antigel hors de portée.",
-          "Protégez lapins, oiseaux et hamsters du soleil direct, des courants d’air et des variations brutales. Un lapin vivant dehors a besoin d’un abri sec et d’eau non gelée.",
+          "Protégez lapins, oiseaux et hamsters du soleil direct, des courants d’air et des variations brutales. Un lapin vivant dehors a besoin d’un abri sec et d’eau non gelée. Les cochons d’Inde supportent très mal la chaleur ; reptiles et poissons ont besoin d’une température stable et adaptée à l’espèce — vérifiez-la avec un thermomètre.",
         ],
         warning:
           "Respiration très difficile, faiblesse, confusion ou effondrement par chaleur, ou abattement marqué par froid : c’est une urgence. Le refroidissement ne doit pas retarder les soins vétérinaires.",
@@ -264,10 +264,10 @@ export const careGuides: CareGuide[] = [
           "Suni vai kaķi pie zobu tīrīšanas pieradini pakāpeniski. Lieto mīkstu birsti un dzīvniekiem paredzētu zobu pastu; centies tīrīt katru dienu.",
           "Nelieto cilvēku zobu pastu. Cieti kauli, ragi un ļoti cietas rotaļlietas var salauzt zobus; košļājamie līdzekļi neaizstāj tīrīšanu.",
           "Veterinārārsta apskatē pārbaudi arī muti. Zobakmens noņemšana un slimību ārstēšana ir klīnikas darbs, nevis kasīšana mājās.",
-          "Trušiem zobu nodilumam vajadzīgs šķiedrvielām bagāts uzturs ar sienu. Kāmjiem nodrošini drošus graužamus materiālus; zobus un putnu knābjus neapgriez pats.",
+          "Trušiem zobu nodilumam vajadzīgs šķiedrvielām bagāts uzturs ar sienu. Kāmjiem nodrošini drošus graužamus materiālus; zobus un putnu knābjus neapgriez pats. Jūrascūciņām zobi aug visu mūžu — vajadzīgs siens; siekalošanās vai svara kritums prasa apskati.",
         ],
         warning:
-          "Slikta elpa, asiņošana, siekalošanās vai grūtības ēst prasa apskati. Trusim, kas neēd, palīdzība vajadzīga steidzami.",
+          "Slikta elpa, asiņošana, siekalošanās vai grūtības ēst prasa apskati. Trusim vai jūrascūciņai, kas neēd, palīdzība vajadzīga steidzami.",
       },
       en: {
         title: "Dental care",
@@ -276,10 +276,10 @@ export const careGuides: CareGuide[] = [
           "Introduce toothbrushing gradually for dogs and cats. Use a soft brush and pet toothpaste; aim to brush daily.",
           "Do not use human toothpaste. Hard bones, antlers and very hard toys can fracture teeth; dental chews do not replace brushing.",
           "Include a mouth check at vet visits. Scaling and treating dental disease belong in a clinic, not scraping teeth at home.",
-          "Rabbits need a fibre-rich, hay-based diet for tooth wear. Give hamsters safe gnawing materials; do not trim teeth or bird beaks yourself.",
+          "Rabbits need a fibre-rich, hay-based diet for tooth wear. Give hamsters safe gnawing materials; do not trim teeth or bird beaks yourself. Guinea pigs’ teeth also grow throughout life, so they need hay; drooling or weight loss needs a vet check.",
         ],
         warning:
-          "Bad breath, bleeding, drooling or trouble eating needs a vet check. A rabbit that is not eating needs urgent care.",
+          "Bad breath, bleeding, drooling or trouble eating needs a vet check. A rabbit or guinea pig that is not eating needs urgent care.",
       },
       ru: {
         title: "Уход за зубами",
@@ -288,10 +288,10 @@ export const careGuides: CareGuide[] = [
           "Приучайте собак и кошек к чистке постепенно. Используйте мягкую щётку и пасту для животных; стремитесь чистить ежедневно.",
           "Не используйте человеческую пасту. Твёрдые кости, рога и очень жёсткие игрушки могут сломать зубы; жевательные средства не заменяют чистку.",
           "На приёме попросите проверить и рот. Удаление зубного камня и лечение проводят в клинике, а не соскабливают дома.",
-          "Кроликам нужен богатый клетчаткой рацион с сеном для стачивания зубов. Хомякам давайте безопасные материалы для грызения; не подрезайте зубы или птичьи клювы самостоятельно.",
+          "Кроликам нужен богатый клетчаткой рацион с сеном для стачивания зубов. Хомякам давайте безопасные материалы для грызения; не подрезайте зубы или птичьи клювы самостоятельно. У морских свинок зубы тоже растут всю жизнь, поэтому нужно сено; слюнотечение или потеря веса требуют осмотра.",
         ],
         warning:
-          "Запах изо рта, кровотечение, слюнотечение или трудности с едой требуют осмотра. Если кролик не ест, помощь нужна срочно.",
+          "Запах изо рта, кровотечение, слюнотечение или трудности с едой требуют осмотра. Если кролик или морская свинка не ест, помощь нужна срочно.",
       },
       fr: {
         title: "Soins dentaires",
@@ -300,10 +300,10 @@ export const careGuides: CareGuide[] = [
           "Habituez progressivement chiens et chats au brossage. Utilisez une brosse souple et un dentifrice pour animaux ; visez un brossage quotidien.",
           "N’utilisez pas de dentifrice humain. Os durs, bois de cervidés et jouets très rigides peuvent casser les dents ; les produits à mâcher ne remplacent pas le brossage.",
           "Faites examiner la bouche lors des visites vétérinaires. Détartrage et traitement des maladies dentaires se font en clinique, pas en grattant à la maison.",
-          "Les lapins ont besoin d’une alimentation riche en fibres, à base de foin, pour user leurs dents. Donnez aux hamsters des matériaux sûrs à ronger ; ne coupez pas vous-même les dents ou les becs.",
+          "Les lapins ont besoin d’une alimentation riche en fibres, à base de foin, pour user leurs dents. Donnez aux hamsters des matériaux sûrs à ronger ; ne coupez pas vous-même les dents ou les becs. Les dents des cochons d’Inde poussent aussi toute la vie : il leur faut du foin ; bave ou perte de poids nécessitent un examen.",
         ],
         warning:
-          "Mauvaise haleine, saignement, salivation ou difficulté à manger nécessitent un examen. Un lapin qui ne mange pas doit être vu rapidement.",
+          "Mauvaise haleine, saignement, salivation ou difficulté à manger nécessitent un examen. Un lapin ou un cochon d’Inde qui ne mange pas doit être vu rapidement.",
       },
     },
   },
@@ -317,7 +317,7 @@ export const careGuides: CareGuide[] = [
         tips: [
           "Katru dienu vēro apetīti, ūdens dzeršanu, izkārnījumus un uzvedību. Svaru un izmaiņas pieraksti medicīnas kartē.",
           "Piedāvā sugai piemērotas kustības, spēles un iespēju atpūsties. Kaķim vajag nagu asināšanas vietu; mazajiem dzīvniekiem — slēptuves un drošu izpēti.",
-          "Regulāri tīri traukus, guļvietas, tualeti un būri. Kažoku un nagus kop atbilstoši sugai; nagus negriez dzīvajā daļā.",
+          "Regulāri tīri traukus, guļvietas, tualeti un būri. Kažoku un nagus kop atbilstoši sugai; nagus negriez dzīvajā daļā. Rāpuļiem un zivīm regulāri pārbaudi temperatūru un tīrību — terārija un akvārija apstākļi tieši ietekmē veselību.",
           "Ar veterinārārstu plāno profilaktiskas apskates un vakcināciju. Saglabā klīnikas tālruni un izmanto atgādnes.",
         ],
         warning:
@@ -329,7 +329,7 @@ export const careGuides: CareGuide[] = [
         tips: [
           "Watch appetite, drinking, droppings and behaviour daily. Record weight and changes in the medical card.",
           "Offer species-appropriate activity, play and rest. Cats need a scratching place; small pets need hiding places and safe exploration.",
-          "Clean bowls, bedding, litter trays and cages regularly. Groom coats and nails for the species; avoid cutting the nail’s sensitive quick.",
+          "Clean bowls, bedding, litter trays and cages regularly. Groom coats and nails for the species; avoid cutting the nail’s sensitive quick. For reptiles and fish, check temperature and cleanliness regularly — terrarium and aquarium conditions directly affect health.",
           "Plan preventive checkups and vaccinations with your vet. Save the clinic number and use reminders.",
         ],
         warning:
@@ -341,7 +341,7 @@ export const careGuides: CareGuide[] = [
         tips: [
           "Ежедневно следите за аппетитом, питьём, выделениями и поведением. Записывайте вес и изменения в медкарту.",
           "Предлагайте подходящие виду движение, игры и отдых. Кошке нужна когтеточка, мелким питомцам — укрытия и безопасное исследование пространства.",
-          "Регулярно очищайте миски, лежанки, лотки и клетки. Ухаживайте за шерстью и когтями с учётом вида; не срезайте живую часть когтя.",
+          "Регулярно очищайте миски, лежанки, лотки и клетки. Ухаживайте за шерстью и когтями с учётом вида; не срезайте живую часть когтя. Рептилиям и рыбам регулярно проверяйте температуру и чистоту — условия в террариуме и аквариуме напрямую влияют на здоровье.",
           "Планируйте профилактические осмотры и прививки с ветеринаром. Сохраните номер клиники и используйте напоминания.",
         ],
         warning:
@@ -353,7 +353,7 @@ export const careGuides: CareGuide[] = [
         tips: [
           "Observez chaque jour appétit, prise d’eau, déjections et comportement. Notez le poids et les changements dans la fiche santé.",
           "Proposez activité, jeux et repos adaptés à l’espèce. Les chats ont besoin d’un griffoir ; les petits animaux, de cachettes et d’exploration sécurisée.",
-          "Nettoyez régulièrement gamelles, couchages, litières et cages. Entretenez pelage et griffes selon l’espèce ; ne coupez pas la partie vivante de la griffe.",
+          "Nettoyez régulièrement gamelles, couchages, litières et cages. Entretenez pelage et griffes selon l’espèce ; ne coupez pas la partie vivante de la griffe. Pour reptiles et poissons, vérifiez régulièrement température et propreté — les conditions du terrarium et de l’aquarium influencent directement la santé.",
           "Planifiez bilans préventifs et vaccins avec le vétérinaire. Enregistrez le numéro de la clinique et utilisez les rappels.",
         ],
         warning:
