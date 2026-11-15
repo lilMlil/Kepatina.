@@ -1,4 +1,12 @@
-export type Species = "Suns" | "Kaķis" | "Trusis" | "Putns" | "Kāmis";
+export type Species =
+  | "Suns"
+  | "Kaķis"
+  | "Trusis"
+  | "Putns"
+  | "Kāmis"
+  | "Jūrascūciņa"
+  | "Rāpuļi"
+  | "Zivtiņas";
 
 export interface Pet {
   id: string;
