@@ -873,9 +873,25 @@ export function useApp() {
   return c;
 }
 
-export const SPECIES: Species[] = ["Suns", "Kaķis", "Trusis", "Putns", "Kāmis"];
+export const SPECIES: Species[] = [
+  "Suns",
+  "Kaķis",
+  "Trusis",
+  "Putns",
+  "Kāmis",
+  "Jūrascūciņa",
+  "Rāpuļi",
+  "Zivtiņas",
+];
 export function speciesLabel(t: Dict, s: Species) {
-  return { Suns: t.spDog, Kaķis: t.spCat, Trusis: t.spRabbit, Putns: t.spBird, Kāmis: t.spHamster }[
-    s
-  ];
+  return {
+    Suns: t.spDog,
+    Kaķis: t.spCat,
+    Trusis: t.spRabbit,
+    Putns: t.spBird,
+    Kāmis: t.spHamster,
+    Jūrascūciņa: t.spGuineaPig,
+    Rāpuļi: t.spReptile,
+    Zivtiņas: t.spFish,
+  }[s];
 }
