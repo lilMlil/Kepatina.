@@ -33,6 +33,9 @@ export const VACCINE_SUGGESTIONS: Record<Species, string[]> = {
   Trusis: ["Myxomatosis", "RHD (VHD)"],
   Putns: ["Polyomavirus", "PMV (Newcastle)"],
   Kāmis: [],
+  Jūrascūciņa: [],
+  Rāpuļi: [],
+  Zivtiņas: [],
 };
 
 export const todayISO = () => {
@@ -68,10 +71,11 @@ export function parseNumber(raw: string): number {
   return Number.isFinite(n) && n > 0 ? n : NaN;
 }
 
-/** Small animals (birds, hamsters) are weighed in grams. */
-export const usesGrams = (species: Species) => species === "Putns" || species === "Kāmis";
+/** Small animals (birds, hamsters, reptiles, fish) are weighed in grams. Guinea pigs use kg. */
+export const usesGrams = (species: Species) =>
+  species === "Putns" || species === "Kāmis" || species === "Rāpuļi" || species === "Zivtiņas";
 
-/** kg -> display string. Birds and hamsters are shown in grams, everything else in kg. */
+/** kg -> display string. Birds, hamsters, reptiles and fish are shown in grams, everything else in kg. */
 export function formatWeight(kg: number, species: Species): string {
   if (usesGrams(species)) return `${Math.round(kg * 1000)} g`;
   return `${Number(kg.toFixed(2))} kg`;
