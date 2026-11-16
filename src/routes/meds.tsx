@@ -22,6 +22,7 @@ import {
   type MedCourse,
 } from "@/lib/meds";
 import { cn } from "@/lib/utils";
+import { DateField, TimeField } from "@/components/pickers";
 
 export const Route = createFileRoute("/meds")({
   component: MedsPage,
@@ -190,13 +191,13 @@ function NewCourse({ petId: initialPet, onClose }: { petId: string; onClose: () 
           <p className="text-sm font-bold">{t.medsTimes}</p>
           {times.map((tm, i) => (
             <div key={i} className="flex items-center gap-2">
-              <input
-                type="time"
-                required
-                value={tm}
-                onChange={(e) => setTimes(times.map((x, j) => (j === i ? e.target.value : x)))}
-                className="flex-1 rounded-2xl border bg-background px-4 py-3"
-              />
+              <div className="flex-1">
+                <TimeField
+                  ariaLabel={t.medsTimes}
+                  value={tm}
+                  onChange={(v) => setTimes(times.map((x, j) => (j === i ? v : x)))}
+                />
+              </div>
               {times.length > 1 && (
                 <button
                   type="button"
@@ -220,21 +221,14 @@ function NewCourse({ petId: initialPet, onClose }: { petId: string; onClose: () 
           )}
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <TextField
-            label={t.medsStart}
-            type="date"
-            required
-            value={start}
-            onChange={(e) => setStart(e.target.value)}
-          />
+          <DateField label={t.medsStart} value={start} onChange={setStart} />
           <TextField
             label={t.medsDays}
-            type="number"
-            min={1}
-            max={365}
+            inputMode="numeric"
+            maxLength={3}
             required
             value={days}
-            onChange={(e) => setDays(e.target.value)}
+            onChange={(e) => setDays(e.target.value.replace(/\D/g, ""))}
           />
         </div>
         <div className="grid grid-cols-2 gap-3">
