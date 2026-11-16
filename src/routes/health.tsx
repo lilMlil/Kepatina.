@@ -40,6 +40,7 @@ import {
   sortByDateDesc,
   todayISO,
 } from "@/lib/health";
+import { DateField } from "@/components/pickers";
 
 export const Route = createFileRoute("/health")({
   component: HealthPage,
@@ -193,22 +194,18 @@ function WeightTab({ pet }: { pet: Pet }) {
           <Scale className="h-5 w-5 text-primary" /> {t.hAdd}
         </h2>
         <div className="grid grid-cols-2 gap-3">
-          <TextField
+          <DateField
             label={t.date}
-            type="date"
             max={todayISO()}
             value={date}
-            onChange={(e) => {
-              setDate(e.target.value);
+            onChange={(v) => {
+              setDate(v);
               setErr("");
             }}
           />
           <TextField
             label={`${t.hWeightField} (${unit})`}
-            type="number"
             inputMode="decimal"
-            min={0}
-            step={grams ? "1" : "0.01"}
             value={value}
             onChange={(e) => {
               setValue(e.target.value);
@@ -406,22 +403,20 @@ function VaccinesTab({ pet }: { pet: Pet }) {
           ))}
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <TextField
+          <DateField
             label={t.hVaccineDate}
-            type="date"
             max={todayISO()}
             value={date}
-            onChange={(e) => {
-              setDate(e.target.value);
+            onChange={(v) => {
+              setDate(v);
               setErr("");
             }}
           />
-          <TextField
+          <DateField
             label={t.hNextDue}
-            type="date"
             min={date || undefined}
             value={nextDue}
-            onChange={(e) => setNextDue(e.target.value)}
+            onChange={setNextDue}
           />
         </div>
         {canRemind && (
@@ -529,13 +524,12 @@ function VisitsTab({ pet }: { pet: Pet }) {
         <h2 className="flex items-center gap-2 text-lg font-semibold">
           <Stethoscope className="h-5 w-5 text-primary" /> {t.hAdd}
         </h2>
-        <TextField
+        <DateField
           label={t.hVisitDate}
-          type="date"
           max={todayISO()}
           value={date}
-          onChange={(e) => {
-            setDate(e.target.value);
+          onChange={(v) => {
+            setDate(v);
             setErr("");
           }}
         />
