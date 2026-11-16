@@ -19,6 +19,7 @@ import {
   type ExpenseCategory,
 } from "@/lib/expenses";
 import { localDate } from "@/lib/meds";
+import { DateField, MonthField } from "@/components/pickers";
 export const Route = createFileRoute("/expenses")({
   component: Expenses,
 });
@@ -49,12 +50,7 @@ function Expenses() {
     <>
       <PageHeading title={t.exTitle} back="/" />
       <div className="grid grid-cols-2 gap-3">
-        <TextField
-          label={t.exMonth}
-          type="month"
-          value={month}
-          onChange={(e) => setMonth(e.target.value)}
-        />
+        <MonthField label={t.exMonth} value={month} onChange={setMonth} />
         <label className="space-y-1.5 text-sm font-bold">
           {t.pet}
           <select
@@ -213,13 +209,7 @@ function ExpenseForm({
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
         />
-        <TextField
-          label={t.date}
-          type="date"
-          required
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-        />
+        <DateField label={t.date} value={date} onChange={setDate} />
         <label className="block space-y-1 text-sm font-bold">
           {t.category}
           <select
