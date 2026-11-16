@@ -25,6 +25,7 @@ import { speciesLabel, useApp } from "@/lib/store";
 import { fileToAvatar } from "@/lib/image";
 import { petAge, type Species } from "@/lib/reminders";
 import type { Dict } from "@/lib/i18n";
+import { DateField } from "@/components/pickers";
 
 function ageText(t: Dict, birthDate?: string) {
   const a = petAge(birthDate);
@@ -159,22 +160,18 @@ function PetsPage() {
                   onChange={(e) => updatePet(p.id, { color: e.target.value })}
                 />
                 <div className="grid grid-cols-2 gap-3">
-                  <TextField
+                  <DateField
                     label={t.medBirth}
-                    type="date"
                     max={new Date().toISOString().slice(0, 10)}
                     value={p.birthDate ?? ""}
-                    onChange={(e) => updatePet(p.id, { birthDate: e.target.value })}
+                    onChange={(v) => updatePet(p.id, { birthDate: v })}
                   />
                   <TextField
                     label={t.medWeight}
-                    type="number"
                     inputMode="decimal"
-                    min={0}
-                    max={200}
-                    step="0.1"
+                    maxLength={6}
                     value={p.weightKg ?? ""}
-                    onChange={(e) => updatePet(p.id, { weightKg: e.target.value })}
+                    onChange={(e) => updatePet(p.id, { weightKg: e.target.value.replace(/[^\d.,]/g, "") })}
                   />
                 </div>
                 {ageText(t, p.birthDate) && (
