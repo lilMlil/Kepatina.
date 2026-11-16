@@ -120,27 +120,27 @@ function Home() {
             </span>
           )}
         </Link>
-        <div className="grid grid-cols-3 gap-3">
-          <Link to="/food" className="rounded-3xl border bg-card p-4 text-center shadow-soft">
+        <div className="grid grid-cols-3 gap-2 [&>a]:min-w-0 [&>a]:break-words [&>a]:[hyphens:auto] [&>a]:[overflow-wrap:anywhere]">
+          <Link to="/food" className="min-w-0 rounded-3xl border bg-card px-2 py-4 text-center shadow-soft">
             <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-peach text-accent-foreground">
               <UtensilsCrossed className="h-5 w-5" />
             </span>
-            <h3 className="mt-3 font-semibold">{t.tabFood}</h3>
-            <p className="mt-1 text-xs text-muted-foreground">{t.foodHeroBody}</p>
+            <h3 className="mt-3 text-[clamp(0.8rem,3.4vw,1rem)] font-semibold leading-tight">{t.tabFood}</h3>
+            <p className="mt-1 text-[clamp(0.65rem,2.8vw,0.75rem)] leading-snug text-muted-foreground">{t.foodHeroBody}</p>
           </Link>
-          <Link to="/symptoms" className="rounded-3xl border bg-card p-4 text-center shadow-soft">
+          <Link to="/symptoms" className="min-w-0 rounded-3xl border bg-card px-2 py-4 text-center shadow-soft">
             <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-peach text-accent-foreground">
               <Stethoscope className="h-5 w-5" />
             </span>
-            <h3 className="mt-3 font-semibold">{t.tabSymptoms}</h3>
-            <p className="mt-1 text-xs text-muted-foreground">{t.symptomsTool}</p>
+            <h3 className="mt-3 text-[clamp(0.8rem,3.4vw,1rem)] font-semibold leading-tight">{t.tabSymptoms}</h3>
+            <p className="mt-1 text-[clamp(0.65rem,2.8vw,0.75rem)] leading-snug text-muted-foreground">{t.symptomsTool}</p>
           </Link>
-          <Link to="/reminders" className="rounded-3xl border bg-card p-4 text-center shadow-soft">
+          <Link to="/reminders" className="min-w-0 rounded-3xl border bg-card px-2 py-4 text-center shadow-soft">
             <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-peach text-accent-foreground">
               <Bell className="h-5 w-5" />
             </span>
-            <h3 className="mt-3 font-semibold">{t.tabReminders}</h3>
-            <p className="mt-1 text-xs text-muted-foreground">{t.remindersTool}</p>
+            <h3 className="mt-3 text-[clamp(0.8rem,3.4vw,1rem)] font-semibold leading-tight">{t.tabReminders}</h3>
+            <p className="mt-1 text-[clamp(0.65rem,2.8vw,0.75rem)] leading-snug text-muted-foreground">{t.remindersTool}</p>
           </Link>
         </div>
         <Carousel
