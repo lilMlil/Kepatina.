@@ -3,6 +3,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Avatar, Chip, PageHeading, PrimaryButton, TextField } from "@/components/kit";
 import { useApp } from "@/lib/store";
+import { repeatDailyLabel } from "@/lib/reminders";
 import { DateField, TimeField } from "@/components/pickers";
 
 export const Route = createFileRoute("/reminder-new")({
@@ -16,11 +17,12 @@ function inDays(n: number) {
 }
 
 function NewReminder() {
-  const { t, pets, selectedPetId, addReminder } = useApp();
+  const { t, pets, selectedPetId, addReminder, settings } = useApp();
   const nav = useNavigate();
   const cats = [t.catVaccine, t.catDeworm, t.catNails, t.catOther];
   const reps = [
     { l: t.once, d: null },
+    { l: repeatDailyLabel[settings.lang], d: 1 },
     { l: t.rep30, d: 30 },
     { l: t.rep90, d: 90 },
     { l: t.rep180, d: 180 },
