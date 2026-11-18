@@ -2,14 +2,14 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Bell, BellOff, BellRing, Check, Plus, Trash2 } from "lucide-react";
 import { Avatar, Card, PageHeading, PrimaryButton, useConfirm } from "@/components/kit";
 import { useApp } from "@/lib/store";
-import type { Reminder } from "@/lib/reminders";
+import { repeatDailyLabel, type Reminder } from "@/lib/reminders";
 
 export const Route = createFileRoute("/reminders")({
   component: RemindersPage,
 });
 
 function RemindersPage() {
-  const { t, reminders, pets, notif, enableNotifications, removeReminder, markDone } = useApp();
+  const { t, settings, reminders, pets, notif, enableNotifications, removeReminder, markDone } = useApp();
   const { ask, dialog } = useConfirm();
   const now = Date.now();
   const sorted = [...reminders].sort((a, b) => a.dueAt.localeCompare(b.dueAt));
@@ -28,14 +28,16 @@ function RemindersPage() {
               {pet?.name} · {r.category}
             </p>
             <p className="mt-1 text-sm font-bold text-primary">
-              {new Date(r.dueAt).toLocaleString(undefined, {
+              {new Date(r.dueAt).toLocaleString(settings.lang, {
                 dateStyle: "medium",
                 timeStyle: "short",
               })}
             </p>
             {r.repeatDays && (
               <p className="text-xs text-muted-foreground">
-                {t.repeatEvery} {r.repeatDays} {t.days}
+                {r.repeatDays === 1
+                  ? repeatDailyLabel[settings.lang]
+                  : `${t.repeatEvery} ${r.repeatDays} ${t.days}`}
               </p>
             )}
           </div>
