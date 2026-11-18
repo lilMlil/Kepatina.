@@ -18,6 +18,8 @@ import {
 import { Avatar, Card } from "@/components/kit";
 import { Carousel } from "@/components/Carousel";
 import { speciesLabel, useApp } from "@/lib/store";
+import { expenseTotal } from "@/lib/expenses";
+import { localDate } from "@/lib/meds";
 import { seasonFor, tipsFor } from "@/lib/seasonal";
 
 export const Route = createFileRoute("/")({
@@ -25,7 +27,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
-  const { t, pets, reminders, selectedPetId, selectedPet, selectPet, owner, settings } = useApp();
+  const { t, pets, reminders, expenses = [], selectedPetId, selectedPet, selectPet, owner, settings } = useApp();
   const season = seasonFor();
   const seasonalTip = tipsFor(season, selectedPet?.species)[0];
   const checklistText = {
@@ -49,9 +51,62 @@ function Home() {
     { to: "/meds", icon: Pill, title: t.medsTitle, text: t.medsTool },
     { to: "/health", icon: HeartPulse, title: t.hTitle, text: t.hToolText },
   ] as const;
-  const next = [...reminders]
-    .filter((r) => new Date(r.dueAt).getTime() >= Date.now())
-    .sort((a, b) => a.dueAt.localeCompare(b.dueAt))[0];
+  const petReminders = [...reminders]
+    .filter((r) => !selectedPetId || r.petId === selectedPetId)
+    .sort((a, b) => a.dueAt.localeCompare(b.dueAt));
+  const monthKey = localDate().slice(0, 7);
+  const monthRows = expenses.filter(
+    (e) => (!selectedPetId || e.petId === selectedPetId) && e.date.startsWith(monthKey),
+  );
+  const money = (cents: number) =>
+    new Intl.NumberFormat(settings.lang, { style: "currency", currency: "EUR" }).format(
+      cents / 100,
+    );
+  const infoSlides = [
+    ...petReminders.map((r) => {
+      const late = new Date(r.dueAt).getTime() < Date.now();
+      return (
+        <Link
+          key={r.id}
+          to="/reminders"
+          className="flex h-full min-h-[8rem] flex-col gap-1 rounded-3xl border bg-card p-4 shadow-soft"
+        >
+          <span className="flex items-center gap-2 text-sm font-bold text-primary">
+            <Bell className="h-4 w-4 shrink-0" />
+            <span className="truncate">{t.tabReminders}</span>
+            {late && <span className="ml-auto text-xs text-danger">{t.overdue}</span>}
+          </span>
+          <span className="block break-words text-lg font-semibold leading-tight">{r.title}</span>
+          <span className="block text-xs text-muted-foreground">
+            {pets.find((p) => p.id === r.petId)?.name} · {r.category}
+          </span>
+          <span className="mt-auto block text-sm font-bold text-primary">
+            {new Date(r.dueAt).toLocaleString(settings.lang, {
+              dateStyle: "medium",
+              timeStyle: "short",
+            })}
+          </span>
+        </Link>
+      );
+    }),
+    ...(monthRows.length
+      ? [
+          <Link
+            key="expenses"
+            to="/expenses"
+            className="flex h-full min-h-[8rem] flex-col gap-1 rounded-3xl border bg-card p-4 shadow-soft"
+          >
+            <span className="flex items-center gap-2 text-sm font-bold text-primary">
+              <Wallet className="h-4 w-4 shrink-0" />
+              <span className="truncate">{t.exTitle}</span>
+            </span>
+            <span className="mt-auto block text-3xl font-semibold text-primary">
+              {money(expenseTotal(monthRows))}
+            </span>
+          </Link>,
+        ]
+      : []),
+  ];
 
   return (
     <>
@@ -99,6 +154,12 @@ function Home() {
           </Card>
         )}
       </section>
+
+      {infoSlides.length > 0 && (
+        <section>
+          <Carousel prevLabel={carouselLabels[0]} nextLabel={carouselLabels[1]} items={infoSlides} />
+        </section>
+      )}
 
       <section className="space-y-3">
         <h2 className="text-center text-xl font-semibold">{t.tools}</h2>
@@ -161,22 +222,6 @@ function Home() {
           ))}
         />
       </section>
-
-      {next && (
-        <section className="space-y-3">
-          <h2 className="text-xl font-semibold">{t.nextReminder}</h2>
-          <Card>
-            <p className="font-bold">{next.title}</p>
-            <p className="text-sm text-muted-foreground">
-              {pets.find((p) => p.id === next.petId)?.name} ·{" "}
-              {new Date(next.dueAt).toLocaleString(undefined, {
-                dateStyle: "medium",
-                timeStyle: "short",
-              })}
-            </p>
-          </Card>
-        </section>
-      )}
 
       <div className="flex gap-2 text-xs font-semibold text-warn">
         <Info className="h-4 w-4 shrink-0" /> {t.disclaimer}
