@@ -304,7 +304,7 @@ export function DateField({
   const weekdays = useMemo(() => weekdayNames(lang), [lang]);
 
   const text = cur
-    ? new Intl.DateTimeFormat(lang, { day: "numeric", month: "long", year: "numeric" }).format(
+    ? new Intl.DateTimeFormat(lang, { day: "2-digit", month: "2-digit", year: "numeric" }).format(
         new Date(cur.y, cur.m, cur.d),
       )
     : "";
