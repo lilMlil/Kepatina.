@@ -15,7 +15,7 @@
     "test:watch": "vitest",
     "assets": "capacitor-assets generate --android --ios --assetPath assets",
     "android:init": "npm run build && cap add android && node scripts/patch-android.mjs && npm run assets && cap sync android",
-    "ios:init": "npm run build && cap add ios && npm run assets && cap sync ios",
+    "ios:init": "npm run build && cap add ios && node scripts/patch-ios.mjs && npm run assets && cap sync ios",
     "sync": "npm run build && cap sync",
     "android:open": "npm run sync && cap open android",
     "ios:open": "npm run sync && cap open ios",

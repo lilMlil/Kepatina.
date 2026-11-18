@@ -27,7 +27,7 @@ export function fillPrivacy(text: string): string {
 export const privacyDocs: Record<Lang, PrivacyDoc> = {
   lv: {
     title: "Privātuma politika",
-    updated: "Atjaunota: 2026. gada 8. novembrī",
+    updated: "Atjaunota: 2026. gada 18. novembrī",
     linkLabel: "Privātuma politika",
     agree: "Reģistrējoties tu piekrīti privātuma politikai:",
     intro:
@@ -70,13 +70,14 @@ export const privacyDocs: Record<Lang, PrivacyDoc> = {
         ul: [
           "Paziņojumi: atgādinājumi tiek plānoti pašā ierīcē (lokāli). Tie neiet cauri nevienam serverim.",
           "Atrašanās vieta: tikai klīniku meklēšanai (skat. 4. punktu).",
-          "Fotogrāfijas un faili: lai izvēlētos mājdzīvnieka foto un saglabātu vai atjaunotu datu kopiju.",
+          "Fotogrāfijas, video un faili: lai izvēlētos mājdzīvnieka foto, sūtītu ģimenes sarakstē fotoattēlus un video un saglabātu vai atjaunotu datu kopiju.",
+          "Mikrofons: tikai tad, kad sāc balss ziņas ierakstu ģimenes sarakstē.",
         ],
       },
       {
         h: "6. Kam dati ir pieejami",
         ul: [
-          "Ģimenes režīms: ja izveido ģimeni vai pievienojies tai ar kodu, visi ģimenes dalībnieki redz un var mainīt kopīgos datus (mājdzīvniekus, atgādinājumus, ierakstus). Dalībnieki redz arī cits cita e-pasta adreses. Ģimenes kodu dod tikai tiem, kam uzticies.",
+          "Ģimenes režīms: ja izveido ģimeni vai pievienojies tai ar kodu, visi ģimenes dalībnieki redz un var mainīt kopīgos datus (mājdzīvniekus, atgādinājumus, ierakstus) un redz ģimenes sarakstes ziņas, fotoattēlus, video un balss ziņas. Dalībnieki redz arī cits cita e-pasta adreses. Dalībnieku iesaukas ir privātas — tās redzi tikai tu. Ģimenes kodu dod tikai tiem, kam uzticies.",
           "QR birka pazudušam dzīvniekam: informācija, ko tu izvēlies (dzīvnieka vārds, tavs vārds un tālrunis, veterinārārsta tālrunis, piezīme), tiek ierakstīta pašā QR kodā. Ikviens, kas to noskenē, to redzēs. Ieraksti tikai to, ko esi gatavs parādīt.",
           "Kopīgošana un datu kopija: faili un teksti, ko tu saglabā vai nosūti ar “Kopīgot”, ir tavā kontrolē. Datu kopijas fails nav šifrēts — glabā to drošā vietā.",
           "Pakalpojumu sniedzēji: Supabase (konti un datubāze) un Overpass serveri (klīniku meklēšana). Citiem trešajiem personām dati netiek nodoti.",
@@ -129,7 +130,7 @@ export const privacyDocs: Record<Lang, PrivacyDoc> = {
   },
   en: {
     title: "Privacy policy",
-    updated: "Last updated: 8 November 2026",
+    updated: "Last updated: 18 November 2026",
     linkLabel: "Privacy policy",
     agree: "By signing up you agree to the privacy policy:",
     intro:
@@ -172,13 +173,14 @@ export const privacyDocs: Record<Lang, PrivacyDoc> = {
         ul: [
           "Notifications: reminders are scheduled on the device itself (local). They do not pass through any server.",
           "Location: only for finding clinics (see section 4).",
-          "Photos and files: to choose a pet photo and to save or restore a backup.",
+          "Photos, videos and files: to choose a pet photo, send photos and videos in family chat, and save or restore a backup.",
+          "Microphone: only when you start recording a voice message in family chat.",
         ],
       },
       {
         h: "6. Who can see your data",
         ul: [
-          "Family mode: if you create or join a family with a code, every family member can see and edit the shared data (pets, reminders, records). Members can also see each other’s e-mail addresses. Share the family code only with people you trust.",
+          "Family mode: if you create or join a family with a code, every family member can see and edit the shared data (pets, reminders, records) and see family chat messages, photos, videos and voice messages. Members can also see each other’s e-mail addresses. Member nicknames are private and visible only to you. Share the family code only with people you trust.",
           "Lost-pet QR tag: the details you choose (pet name, your name and phone, vet phone, note) are written into the QR code itself. Anyone who scans it will see them. Include only what you are happy to show.",
           "Sharing and backups: files and texts you save or send with “Share” are under your control. The backup file is not encrypted — keep it somewhere safe.",
           "Service providers: Supabase (accounts and database) and Overpass servers (clinic search). Your data is not passed to any other third parties.",
@@ -231,7 +233,7 @@ export const privacyDocs: Record<Lang, PrivacyDoc> = {
   },
   ru: {
     title: "Политика конфиденциальности",
-    updated: "Обновлено: 8 ноября 2026 г.",
+    updated: "Обновлено: 18 ноября 2026 г.",
     linkLabel: "Политика конфиденциальности",
     agree: "Регистрируясь, вы соглашаетесь с политикой конфиденциальности:",
     intro:
@@ -274,13 +276,14 @@ export const privacyDocs: Record<Lang, PrivacyDoc> = {
         ul: [
           "Уведомления: напоминания планируются на самом устройстве (локально) и не проходят через сервер.",
           "Геолокация: только для поиска клиник (см. пункт 4).",
-          "Фото и файлы: чтобы выбрать фото питомца и сохранить или восстановить резервную копию.",
+          "Фото, видео и файлы: чтобы выбрать фото питомца, отправлять фото и видео в семейном чате, а также сохранять или восстанавливать резервную копию.",
+          "Микрофон: только когда вы начинаете запись голосового сообщения в семейном чате.",
         ],
       },
       {
         h: "6. Кто может видеть данные",
         ul: [
-          "Режим «семья»: если вы создаёте семью или входите в неё по коду, все участники видят и могут изменять общие данные (питомцев, напоминания, записи). Участники также видят адреса электронной почты друг друга. Давайте код семьи только тем, кому доверяете.",
+          "Режим «семья»: если вы создаёте семью или входите в неё по коду, все участники видят и могут изменять общие данные (питомцев, напоминания, записи), а также читать сообщения, фото, видео и голосовые сообщения семейного чата. Участники также видят адреса электронной почты друг друга. Прозвища участников видны только вам. Давайте код семьи только тем, кому доверяете.",
           "QR-жетон потерянного питомца: выбранные вами сведения (кличка, ваше имя и телефон, телефон ветеринара, заметка) записываются прямо в QR-код. Любой, кто его отсканирует, их увидит. Указывайте только то, что готовы показать.",
           "Поделиться и резервная копия: файлы и тексты, которые вы сохраняете или отправляете через «Поделиться», находятся под вашим контролем. Файл резервной копии не зашифрован — храните его в надёжном месте.",
           "Поставщики услуг: Supabase (аккаунты и база данных) и серверы Overpass (поиск клиник). Другим третьим лицам данные не передаются.",
@@ -333,7 +336,7 @@ export const privacyDocs: Record<Lang, PrivacyDoc> = {
   },
   fr: {
     title: "Politique de confidentialité",
-    updated: "Dernière mise à jour : 8 novembre 2026",
+    updated: "Dernière mise à jour : 18 novembre 2026",
     linkLabel: "Politique de confidentialité",
     agree: "En vous inscrivant, vous acceptez la politique de confidentialité :",
     intro:
@@ -376,13 +379,14 @@ export const privacyDocs: Record<Lang, PrivacyDoc> = {
         ul: [
           "Notifications : les rappels sont programmés sur l’appareil lui-même (en local). Ils ne passent par aucun serveur.",
           "Localisation : uniquement pour chercher des cliniques (voir section 4).",
-          "Photos et fichiers : pour choisir la photo d’un animal et enregistrer ou restaurer une sauvegarde.",
+          "Photos, vidéos et fichiers : pour choisir une photo d’animal, envoyer des photos et vidéos dans la discussion familiale et enregistrer ou restaurer une sauvegarde.",
+          "Microphone : uniquement lorsque vous lancez l’enregistrement d’un message vocal dans la discussion familiale.",
         ],
       },
       {
         h: "6. Qui peut voir vos données",
         ul: [
-          "Mode famille : si vous créez une famille ou la rejoignez avec un code, chaque membre peut voir et modifier les données partagées (animaux, rappels, dossiers). Les membres voient aussi les adresses e-mail des autres. Ne donnez le code qu’aux personnes de confiance.",
+          "Mode famille : si vous créez une famille ou la rejoignez avec un code, chaque membre peut voir et modifier les données partagées (animaux, rappels, dossiers) et consulter les messages, photos, vidéos et vocaux de la discussion familiale. Les membres voient aussi les adresses e-mail des autres. Les surnoms des membres ne sont visibles que par vous. Ne donnez le code qu’aux personnes de confiance.",
           "Plaque QR d’animal perdu : les informations que vous choisissez (nom de l’animal, votre nom et téléphone, téléphone du vétérinaire, note) sont écrites dans le QR code lui-même. Toute personne qui le scanne les verra. N’indiquez que ce que vous acceptez de montrer.",
           "Partage et sauvegarde : les fichiers et textes que vous enregistrez ou envoyez via « Partager » restent sous votre contrôle. Le fichier de sauvegarde n’est pas chiffré — conservez-le en lieu sûr.",
           "Prestataires : Supabase (comptes et base de données) et serveurs Overpass (recherche de cliniques). Vos données ne sont transmises à aucun autre tiers.",

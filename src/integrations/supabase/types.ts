@@ -8,6 +8,90 @@ export type Database = {
   };
   public: {
     Tables: {
+      family_member_nicknames: {
+        Row: {
+          family_id: string;
+          member_user_id: string;
+          nickname: string;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          family_id: string;
+          member_user_id: string;
+          nickname: string;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          family_id?: string;
+          member_user_id?: string;
+          nickname?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "family_member_nicknames_family_id_fkey";
+            columns: ["family_id"];
+            isOneToOne: false;
+            referencedRelation: "families";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "family_member_nicknames_family_id_user_id_fkey";
+            columns: ["family_id", "user_id"];
+            isOneToOne: false;
+            referencedRelation: "family_members";
+            referencedColumns: ["family_id", "user_id"];
+          },
+          {
+            foreignKeyName: "family_member_nicknames_family_id_member_user_id_fkey";
+            columns: ["family_id", "member_user_id"];
+            isOneToOne: false;
+            referencedRelation: "family_members";
+            referencedColumns: ["family_id", "user_id"];
+          },
+        ];
+      };
+      family_messages: {
+        Row: {
+          content: string | null;
+          created_at: string;
+          family_id: string;
+          id: string;
+          kind: string;
+          media_path: string | null;
+          sender_id: string;
+        };
+        Insert: {
+          content?: string | null;
+          created_at?: string;
+          family_id: string;
+          id?: string;
+          kind: string;
+          media_path?: string | null;
+          sender_id: string;
+        };
+        Update: {
+          content?: string | null;
+          created_at?: string;
+          family_id?: string;
+          id?: string;
+          kind?: string;
+          media_path?: string | null;
+          sender_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "family_messages_family_id_fkey";
+            columns: ["family_id"];
+            isOneToOne: false;
+            referencedRelation: "families";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       families: {
         Row: {
           created_at: string;

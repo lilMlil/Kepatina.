@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { toast } from "sonner";
 import {
   Cloud,
@@ -8,6 +8,7 @@ import {
   EyeOff,
   LogOut,
   PawPrint,
+  Pencil,
   RefreshCw,
   Settings,
   Share2,
@@ -323,8 +324,76 @@ function FamilyCard() {
   const { ask, dialog } = useConfirm();
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
+  const [nicknames, setNicknames] = useState<Record<string, string>>({});
+  const [editingMember, setEditingMember] = useState<string | null>(null);
+  const [nicknameDraft, setNicknameDraft] = useState("");
+  const [savingNickname, setSavingNickname] = useState(false);
   const isOwner = !!family && family.ownerId === user?.id;
   const othersInFamily = family ? family.members.some((m) => m.userId !== user?.id) : false;
+  const familyId = family?.id;
+  const userId = user?.id;
+
+  useEffect(() => {
+    let active = true;
+    if (!familyId || !userId || !online) {
+      setNicknames({});
+      return;
+    }
+    void supabase
+      .from("family_member_nicknames")
+      .select("member_user_id, nickname")
+      .eq("family_id", familyId)
+      .eq("user_id", userId)
+      .then(({ data, error }) => {
+        if (!active) return;
+        if (error) {
+          toast.error(error.message);
+          return;
+        }
+        setNicknames(
+          Object.fromEntries((data ?? []).map((row) => [row.member_user_id, row.nickname])),
+        );
+      });
+    return () => {
+      active = false;
+    };
+  }, [familyId, userId, online]);
+
+  async function saveNickname(memberUserId: string) {
+    if (!family || !user) return;
+    const nickname = nicknameDraft.trim();
+    setSavingNickname(true);
+    const result = nickname
+      ? await supabase.from("family_member_nicknames").upsert(
+          {
+            family_id: family.id,
+            user_id: user.id,
+            member_user_id: memberUserId,
+            nickname,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "family_id,user_id,member_user_id" },
+        )
+      : await supabase
+          .from("family_member_nicknames")
+          .delete()
+          .eq("family_id", family.id)
+          .eq("user_id", user.id)
+          .eq("member_user_id", memberUserId);
+    setSavingNickname(false);
+    if (result.error) {
+      toast.error(result.error.message);
+      return;
+    }
+    setNicknames((current) => {
+      const next = { ...current };
+      if (nickname) next[memberUserId] = nickname;
+      else delete next[memberUserId];
+      return next;
+    });
+    setEditingMember(null);
+    toast.success(t.famNicknameSaved);
+  }
 
   const joinErrorText: Record<JoinError, string> = {
     invalid: t.famInvalid,
@@ -358,6 +427,12 @@ function FamilyCard() {
       ) : family ? (
         <>
           <p className="text-sm font-semibold text-safe">{t.famShared}</p>
+          <Link
+            to="/family-chat"
+            className="flex min-h-11 items-center justify-center rounded-2xl bg-primary px-4 font-bold text-primary-foreground"
+          >
+            {t.famChatOpen}
+          </Link>
           <div className="space-y-1">
             <p className="text-xs font-bold text-muted-foreground">{t.famCode}</p>
             <div className="flex items-center gap-2">
@@ -410,18 +485,66 @@ function FamilyCard() {
               {family.members.map((m) => (
                 <li
                   key={m.userId}
-                  className="flex items-center justify-between gap-2 px-3 py-2 text-sm"
+                  className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm"
                 >
-                  <span className="truncate">
-                    {m.email ?? "—"}
-                    {m.userId === user.id && (
-                      <span className="text-muted-foreground"> ({t.famYou})</span>
-                    )}
-                    {m.userId === family.ownerId && (
-                      <span className="text-muted-foreground"> · {t.famOwner}</span>
-                    )}
-                  </span>
-                  {isOwner && m.userId !== user.id && (
+                  {editingMember === m.userId ? (
+                    <form
+                      className="flex min-w-0 flex-1 items-center gap-1"
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        void saveNickname(m.userId);
+                      }}
+                    >
+                      <input
+                        autoFocus
+                        maxLength={40}
+                        value={nicknameDraft}
+                        onChange={(event) => setNicknameDraft(event.target.value)}
+                        placeholder={t.famNicknamePh}
+                        aria-label={t.famNicknamePh}
+                        className="h-10 min-w-0 flex-1 rounded-xl border bg-background px-2 text-sm"
+                      />
+                      <button
+                        type="submit"
+                        disabled={!online || savingNickname}
+                        className="shrink-0 rounded-lg px-2 py-2 font-bold text-primary disabled:opacity-50"
+                      >
+                        {t.famNicknameSave}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingMember(null)}
+                        className="shrink-0 rounded-lg px-2 py-2 text-muted-foreground"
+                      >
+                        {t.famNicknameCancel}
+                      </button>
+                    </form>
+                  ) : (
+                    <span className="min-w-0 flex-1 truncate">
+                      {nicknames[m.userId] || m.email || "—"}
+                      {m.userId === user.id && (
+                        <span className="text-muted-foreground"> ({t.famYou})</span>
+                      )}
+                      {m.userId === family.ownerId && (
+                        <span className="text-muted-foreground"> · {t.famOwner}</span>
+                      )}
+                    </span>
+                  )}
+                  {editingMember !== m.userId && (
+                    <button
+                      type="button"
+                      aria-label={t.famNicknameEdit}
+                      title={t.famNicknameEdit}
+                      onClick={() => {
+                        setNicknameDraft(nicknames[m.userId] ?? "");
+                        setEditingMember(m.userId);
+                      }}
+                      className="shrink-0 rounded-lg p-2 text-muted-foreground hover:text-primary"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                  )}
+                  {isOwner && m.userId !== user.id && editingMember !== m.userId && (
                     <button
                       className="shrink-0 text-xs font-bold text-destructive"
                       onClick={() =>

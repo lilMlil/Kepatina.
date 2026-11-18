@@ -16,6 +16,7 @@ const perms = [
   "android.permission.VIBRATE",
   "android.permission.ACCESS_COARSE_LOCATION",
   "android.permission.ACCESS_FINE_LOCATION",
+  "android.permission.RECORD_AUDIO",
 ];
 const missing = perms.filter((p) => !xml.includes(`"${p}"`));
 if (missing.length) {
