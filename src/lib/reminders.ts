@@ -27,6 +27,14 @@ export interface Pet {
   neutered?: boolean | undefined;
 }
 
+/** Label of the "every day" repeat option (repeatDays = 1). */
+export const repeatDailyLabel = {
+  lv: "Katru dienu",
+  en: "Every day",
+  ru: "Каждый день",
+  fr: "Chaque jour",
+} as const;
+
 export interface Reminder {
   id: string;
   petId: string;
