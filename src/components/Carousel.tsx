@@ -48,6 +48,7 @@ export function Carousel({
           </div>
         ))}
       </div>
+      {count > 1 && (
       <div className="flex items-center justify-between gap-3">
         <button type="button" aria-label={prevLabel} onClick={() => go(index - 1)} className={arrowCls}>
           <ChevronLeft className="h-6 w-6" />
@@ -67,6 +68,7 @@ export function Carousel({
           <ChevronRight className="h-6 w-6" />
         </button>
       </div>
+      )}
     </div>
   );
 }
