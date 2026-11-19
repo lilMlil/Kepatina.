@@ -93,6 +93,18 @@ BEGIN
 END $$;
 REVOKE EXECUTE ON FUNCTION public._leave_family(uuid) FROM PUBLIC, anon, authenticated;
 
+-- The public RPC the app calls (supabase.rpc('leave_family')). Older databases only had the
+-- internal helper above, which caused: "Could not find the function public.leave_family without
+-- parameters in the schema cache". Create it here and expose it to signed-in users.
+CREATE OR REPLACE FUNCTION public.leave_family()
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF auth.uid() IS NULL THEN RAISE EXCEPTION 'not signed in'; END IF;
+  PERFORM public._leave_family(auth.uid());
+END $$;
+REVOKE EXECUTE ON FUNCTION public.leave_family() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.leave_family() TO authenticated;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
