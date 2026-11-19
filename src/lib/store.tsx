@@ -29,9 +29,15 @@ import { applyStatusBarTheme, isNative, RECOVERY_EVENT, RECOVERY_KEY } from "./n
 import { accountCopy } from "./account-i18n";
 import type { MedCourse } from "./meds";
 import type { Expense } from "./expenses";
-import { deleteLocalFiles, type StoredFile } from "./media";
+import { deleteLocalFiles, listLocalFiles, restoreLocalFiles, type StoredFile } from "./media";
 import type { DocumentEntry, MemoryEntry } from "./memories";
 import { emptyState, partitionPetState, type Owner, type SavedState } from "./family-state";
+import {
+  hasBackupContent,
+  persistBackupArchive,
+  restoreBackupArchive,
+  validateLegacyState,
+} from "./backup-archive";
 import {
   dueForNotification,
   nextDueDate,
@@ -210,6 +216,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [notif, setNotif] = useState<NotifState>("default");
   const remoteLoaded = useRef<string | null>(null);
+  const recoveredPreviousArchive = useRef(false);
   const [online, setOnline] = useState(true);
   const [recovery, setRecovery] = useState(false);
   const storageWarned = useRef(false);
@@ -289,6 +296,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!supabaseConfigured) return;
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT" || session?.user.id !== remoteLoaded.current)
+        remoteLoaded.current = null;
       if (event === "PASSWORD_RECOVERY") setRecovery(true);
       setUser(session?.user ?? null);
     });
@@ -360,22 +369,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
         d.owner?.phone)
     );
 
-  // On sign-in (or reconnect): load family or personal cloud state, or upload local state if none exists
+  // On sign-in (or reconnect): restore the user's archive, migrate legacy rows, or back up local data.
   useEffect(() => {
     if (!ready || !user || !online || remoteLoaded.current === user.id) return;
     let cancelled = false;
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
-    // Could not reach the cloud: do NOT guess (that could overwrite good data) — just try again soon.
     const tryAgainLater = () => {
       retryTimer = setTimeout(() => setSyncRetry((n) => n + 1), 15000);
     };
     (async () => {
-      // Signed in here before? Then this phone already holds the synced copy and the cloud is newer.
-      let knownDevice = false;
+      let localState = stateRef.current;
       try {
-        knownDevice = localStorage.getItem(SYNCED_KEY) === user.id;
+        const previousUserId = localStorage.getItem(SYNCED_KEY);
+        if (previousUserId && previousUserId !== user.id) localState = emptyState;
       } catch {
-        /* ignore */
+        /* local state is still the best available source if storage is unavailable */
       }
       const fam = await loadFamily(user.id);
       if (cancelled) return;
@@ -383,88 +391,139 @@ export function AppProvider({ children }: { children: ReactNode }) {
         tryAgainLater();
         return;
       }
-      if (fam) {
-        const { data: personalData, error: personalError } = await supabase
+      const { data: objects, error: listError } = await supabase.storage
+        .from("user-backups")
+        .list(user.id, { limit: 100, search: "backup" });
+      if (cancelled) return;
+      if (listError) {
+        tryAgainLater();
+        return;
+      }
+
+      const currentExists = (objects ?? []).some((object) => object.name === "backup.zip");
+      const previousExists = (objects ?? []).some((object) => object.name === "backup.prev.zip");
+      const backupNames = currentExists
+        ? previousExists
+          ? ["backup.zip", "backup.prev.zip"]
+          : ["backup.zip"]
+        : previousExists
+          ? ["backup.prev.zip"]
+          : [];
+      let personal: SavedState = emptyState;
+      let restoredSettings: Settings | undefined;
+      let legacyRowExists = false;
+      if (backupNames.length) {
+        let archiveRestored = false;
+        for (const backupName of backupNames) {
+          const { data: archive, error: downloadError } = await supabase.storage
+            .from("user-backups")
+            .download(`${user.id}/${backupName}`);
+          if (cancelled) return;
+          if (downloadError || !archive) {
+            console.error(`[backup] could not download ${backupName}`, downloadError);
+            continue;
+          }
+          try {
+            let restoredState: SavedState | undefined;
+            let archiveSettings: Settings | undefined;
+            const contents = await restoreBackupArchive(archive, {
+              files: restoreLocalFiles,
+              state: (next) => {
+                restoredState = next;
+              },
+              settings: (next) => {
+                archiveSettings = next;
+              },
+            });
+            if (cancelled) return;
+            personal = restoredState ?? contents.state;
+            restoredSettings = archiveSettings ?? contents.settings;
+            recoveredPreviousArchive.current = backupName === "backup.prev.zip";
+            archiveRestored = true;
+            break;
+          } catch (error) {
+            console.error(`[backup] ${backupName} validation or restore failed`, error);
+          }
+        }
+        if (!archiveRestored) {
+          tryAgainLater();
+          return;
+        }
+        try {
+          const { error: deleteError } = await supabase
+            .from("user_state")
+            .delete()
+            .eq("user_id", user.id);
+          if (deleteError) console.error("[backup] legacy row cleanup failed", deleteError);
+        } catch (error) {
+          console.error("[backup] legacy row cleanup failed", error);
+        }
+      } else {
+        const { data: legacy, error: legacyError } = await supabase
           .from("user_state")
           .select("data")
           .eq("user_id", user.id)
           .maybeSingle();
         if (cancelled) return;
-        if (personalError) {
+        if (legacyError) {
           tryAgainLater();
           return;
         }
-        const remotePersonal = personalData?.data as Partial<SavedState> | undefined;
-        const familyInfo = {
-          ...fam.info,
-          sharedPetOwners: { ...fam.info.sharedPetOwners },
-        };
-        setFamily(familyInfo);
-        const sharedPetIds = new Set(Object.keys(familyInfo.sharedPetOwners));
-        const personal = hasContent(remotePersonal)
-          ? knownDevice
-            ? { ...emptyState, ...remotePersonal }
-            : mergeStates(stateRef.current, remotePersonal)
-          : personalFamilyData(stateRef.current, familyInfo.sharedPetOwners, user.id);
-        const privatePersonal = partitionPetState(personal, sharedPetIds).privateState;
-        if (!hasContent(remotePersonal)) {
-          const { error: backupError } = await supabase.from("user_state").upsert({
-            user_id: user.id,
-            data: personalFamilyData(personal, familyInfo.sharedPetOwners, user.id) as never,
-          });
-          if (cancelled) return;
-          if (backupError) {
+        legacyRowExists = Boolean(legacy);
+        const legacyState = validateLegacyState(legacy?.data);
+        personal =
+          legacyState && hasBackupContent(legacyState)
+            ? mergeStates(localState, legacyState)
+            : localState;
+        if (fam) personal = personalFamilyData(personal, fam.info.sharedPetOwners, user.id);
+        if (hasBackupContent(personal)) {
+          try {
+            await persistBackupArchive(
+              user.id,
+              personal,
+              settings,
+              await listLocalFiles(),
+              supabase.storage.from("user-backups"),
+            );
+            if (legacyRowExists) {
+              const { error: deleteError } = await supabase
+                .from("user_state")
+                .delete()
+                .eq("user_id", user.id);
+              if (deleteError) console.error("[backup] legacy row cleanup failed", deleteError);
+            }
+          } catch (error) {
+            console.error("[backup] initial archive upload failed", error);
             tryAgainLater();
             return;
           }
         }
-        if (!hasContent(fam.data)) {
-          lastPushed.current = "";
-        } else {
-          lastPushed.current = JSON.stringify({
-            ...fam.data,
-            sharedPetOwners: familyInfo.sharedPetOwners,
-          });
-        }
-        setState(
-          mergeStates(privatePersonal, familySharedState(fam.data, familyInfo.sharedPetOwners)),
-        );
+      }
+      if (cancelled) return;
+      if (restoredSettings) setSettings(restoredSettings);
+      if (fam) {
+        const familyInfo = { ...fam.info, sharedPetOwners: { ...fam.info.sharedPetOwners } };
+        setFamily(familyInfo);
+        lastPushed.current = hasContent(fam.data)
+          ? JSON.stringify({ ...fam.data, sharedPetOwners: familyInfo.sharedPetOwners })
+          : "";
+        setState(mergeStates(personal, familySharedState(fam.data, familyInfo.sharedPetOwners)));
       } else {
         setFamily(null);
-        const { data, error } = await supabase
-          .from("user_state")
-          .select("data")
-          .eq("user_id", user.id)
-          .maybeSingle();
-        if (cancelled) return;
-        if (error) {
-          tryAgainLater();
-          return;
-        }
-        const remote = data?.data as Partial<SavedState> | undefined;
-        if (hasContent(remote))
-          setState(
-            knownDevice ? { ...emptyState, ...remote } : mergeStates(stateRef.current, remote),
-          );
-        else
-          await supabase
-            .from("user_state")
-            .upsert({ user_id: user.id, data: stateRef.current as never });
+        setState(personal);
       }
-      if (!cancelled) {
-        remoteLoaded.current = user.id;
-        try {
-          localStorage.setItem(SYNCED_KEY, user.id);
-        } catch {
-          /* ignore */
-        }
+      remoteLoaded.current = user.id;
+      try {
+        localStorage.setItem(SYNCED_KEY, user.id);
+      } catch {
+        /* the cloud archive remains the source of truth */
       }
     })();
     return () => {
       cancelled = true;
       if (retryTimer) clearTimeout(retryTimer);
     };
-  }, [user, ready, online, loadFamily, syncRetry]);
+  }, [user, ready, online, loadFamily, syncRetry, settings]);
 
   // Live updates from other family members
   useEffect(() => {
@@ -532,7 +591,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [family?.id]);
 
-  // Sync changes to cloud (debounced); waits while offline and resumes on reconnect
+  // Keep the private archive current (debounced); retries after failures and reconnects.
   useEffect(() => {
     if (!user || !online || remoteLoaded.current !== user.id) return;
     const lang = settings.lang;
@@ -545,16 +604,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setTimeout(() => setSyncRetry((n) => n + 1), 20000);
     };
     const h = setTimeout(() => {
-      const json = JSON.stringify(state);
       void (async () => {
+        const personalState = family
+          ? personalFamilyData(state, family.sharedPetOwners, user.id)
+          : state;
+        if (hasBackupContent(personalState)) {
+          try {
+            await persistBackupArchive(
+              user.id,
+              personalState,
+              settings,
+              await listLocalFiles(),
+              supabase.storage.from("user-backups"),
+              recoveredPreviousArchive.current,
+            );
+            recoveredPreviousArchive.current = false;
+            syncWarned.current = false;
+          } catch (error) {
+            console.error("[backup] archive upload failed", error);
+            pushFailed();
+            return;
+          }
+        }
         if (family) {
-          const personalState = personalFamilyData(state, family.sharedPetOwners, user.id);
-          const { error: personalError } = await supabase.from("user_state").upsert({
-            user_id: user.id,
-            data: personalState as never,
-            updated_at: new Date().toISOString(),
-          });
-          if (personalError) return pushFailed();
           const sharedData = sharedFamilyData(state, family.sharedPetOwners);
           const sharedJson = JSON.stringify(sharedData);
           if (sharedJson === lastPushed.current) {
@@ -571,19 +643,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
           syncWarned.current = false;
           // Nothing was updated: we are not in this family any more (removed, or the family is gone)
           if (!data || data.length === 0) void refreshFamilyRef.current();
-        } else {
-          const { error } = await supabase.from("user_state").upsert({
-            user_id: user.id,
-            data: state as never,
-            updated_at: new Date().toISOString(),
-          });
-          if (error) return pushFailed();
-          syncWarned.current = false;
         }
       })();
     }, 800);
     return () => clearTimeout(h);
-  }, [state, user, online, family, syncRetry, settings.lang]);
+  }, [state, user, online, family, syncRetry, settings]);
 
   /** Re-reads the member list / code / owner. If we were removed from the family, go back to personal mode. */
   const refreshFamily = useCallback(async () => {
@@ -623,13 +687,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const createFamily = useCallback(async () => {
     if (!user) return false;
-    const personal = stateRef.current;
-    const { error: backupError } = await supabase.from("user_state").upsert({
-      user_id: user.id,
-      data: personal as never,
-      updated_at: new Date().toISOString(),
-    });
-    if (backupError) return false;
     const initialData = sharedFamilyData(emptyState, {});
     const { error } = await supabase.rpc("create_family", { initial: initialData as never });
     if (error) return false;
@@ -704,15 +761,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setFamily(null);
     toast.success(dicts[settings.lang].famLeft);
     // Keep privately owned pets and data, but do not copy other members' shared bundles.
-    const { error: backupError } = await supabase.from("user_state").upsert({
-      user_id: user.id,
-      data: personalState as never,
-      updated_at: new Date().toISOString(),
-    });
-    if (backupError) {
-      console.error("[family] personal backup after leaving failed", backupError);
-      toast.error(backupError.message || dicts[settings.lang].cloudSyncFail);
-    }
   }, [user, family, settings.lang]);
 
   const removeMember = useCallback(
@@ -762,11 +810,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
     remoteLoaded.current = null;
     lastPushed.current = "";
-    try {
-      localStorage.removeItem(SYNCED_KEY);
-    } catch {
-      /* ignore */
-    }
     setFamily(null);
     setUser(null);
     return null;

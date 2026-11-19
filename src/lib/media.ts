@@ -5,9 +5,11 @@ export interface StoredFile {
   size: number;
 }
 
-interface StoredFileData extends StoredFile {
+export interface StoredFileData extends StoredFile {
   blob: Blob;
 }
+
+export type StoredFileWithData = StoredFileData;
 
 export const MAX_LOCAL_FILE_BYTES = 50 * 1024 * 1024;
 
@@ -84,6 +86,35 @@ export async function getLocalFile(id: string): Promise<Blob | null> {
     request.onerror = () => reject(request.error ?? new Error("Could not read the local file."));
     transaction.onerror = () =>
       reject(transaction.error ?? new Error("Could not read the local file."));
+  });
+}
+
+export async function listLocalFiles(): Promise<StoredFileWithData[]> {
+  const db = await openDatabase();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, "readonly");
+    const request = transaction.objectStore(STORE_NAME).getAll() as IDBRequest<
+      StoredFileWithData[]
+    >;
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error ?? new Error("Could not read local files."));
+    transaction.onerror = () =>
+      reject(transaction.error ?? new Error("Could not read local files."));
+  });
+}
+
+export async function restoreLocalFiles(files: StoredFileWithData[]): Promise<void> {
+  if (files.length === 0) return;
+  const db = await openDatabase();
+  await new Promise<void>((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, "readwrite");
+    const store = transaction.objectStore(STORE_NAME);
+    for (const file of files) store.put(file);
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () =>
+      reject(transaction.error ?? new Error("Could not restore local files."));
+    transaction.onabort = () =>
+      reject(transaction.error ?? new Error("Restoring local files was canceled."));
   });
 }
 
