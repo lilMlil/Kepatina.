@@ -86,6 +86,13 @@ CREATE POLICY "senders delete own chat messages" ON public.family_messages
     family_id = public.my_family_id() AND sender_id = auth.uid()
   );
 
+-- People can delete only their own messages (their own media files are covered by the storage policy below).
+DROP POLICY IF EXISTS "senders delete own chat" ON public.family_messages;
+CREATE POLICY "senders delete own chat" ON public.family_messages
+  FOR DELETE TO authenticated USING (
+    family_id = public.my_family_id() AND sender_id = auth.uid()
+  );
+
 -- A viewer's nicknames are private to that viewer, but available on their other devices.
 CREATE TABLE IF NOT EXISTS public.family_member_nicknames (
   family_id uuid NOT NULL REFERENCES public.families(id) ON DELETE CASCADE,

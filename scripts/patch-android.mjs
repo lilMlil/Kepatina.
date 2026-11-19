@@ -17,6 +17,9 @@ const perms = [
   "android.permission.ACCESS_COARSE_LOCATION",
   "android.permission.ACCESS_FINE_LOCATION",
   "android.permission.RECORD_AUDIO",
+  // Capacitor asks for this together with RECORD_AUDIO when the WebView opens the microphone;
+  // without it the whole request is denied ("Permission denied") even if RECORD_AUDIO is granted.
+  "android.permission.MODIFY_AUDIO_SETTINGS",
 ];
 const missing = perms.filter((p) => !xml.includes(`"${p}"`));
 if (missing.length) {
