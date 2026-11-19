@@ -1,12 +1,28 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useRef, useState, type TouchList } from "react";
+import { useEffect, useRef, useState, type ReactNode, type TouchList } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
-import { ArrowUp, ChevronLeft, ChevronRight, Mic, Paperclip, Play, Square, X } from "lucide-react";
+import {
+  ArrowUp,
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  Download,
+  EllipsisVertical,
+  Mic,
+  Paperclip,
+  Play,
+  Share2,
+  Square,
+  Trash2,
+  X,
+} from "lucide-react";
 import { Card, PageHeading } from "@/components/kit";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/store";
+import { saveMedia, saveText, shareMedia } from "@/lib/native/chat-media";
+import { shareText } from "@/lib/native/platform";
 
 export const Route = createFileRoute("/family-chat")({
   component: FamilyChatPage,
@@ -67,11 +83,95 @@ interface ViewerItem {
   url: string;
 }
 
-const VIEWER_LABELS = {
-  lv: { open: "Atvērt", close: "Aizvērt", prev: "Iepriekšējais", next: "Nākamais" },
-  en: { open: "Open", close: "Close", prev: "Previous", next: "Next" },
-  ru: { open: "Открыть", close: "Закрыть", prev: "Предыдущее", next: "Следующее" },
-  fr: { open: "Ouvrir", close: "Fermer", prev: "Précédent", next: "Suivant" },
+const CHAT_LABELS = {
+  lv: {
+    open: "Atvērt",
+    close: "Aizvērt",
+    prev: "Iepriekšējais",
+    next: "Nākamais",
+    actions: "Darbības",
+    copy: "Kopēt tekstu",
+    copied: "Teksts nokopēts",
+    save: "Saglabāt",
+    saved: "Saglabāts",
+    share: "Kopīgot",
+    delete: "Dzēst",
+    cancel: "Atcelt",
+    deleteAllTitle: "Dzēst visiem?",
+    deleteAllText: "Ziņa pazudīs visiem ģimenes čatā.",
+    deleteMeTitle: "Dzēst man?",
+    deleteMeText: "Ziņa pazudīs tikai tev, pārējiem tā paliks.",
+    saveFailed: "Neizdevās saglabāt.",
+    shareFailed: "Neizdevās kopīgot.",
+    deleteFailed: "Neizdevās izdzēst.",
+    deleted: "Ziņa izdzēsta",
+  },
+  en: {
+    open: "Open",
+    close: "Close",
+    prev: "Previous",
+    next: "Next",
+    actions: "Actions",
+    copy: "Copy text",
+    copied: "Text copied",
+    save: "Save",
+    saved: "Saved",
+    share: "Share",
+    delete: "Delete",
+    cancel: "Cancel",
+    deleteAllTitle: "Delete for everyone?",
+    deleteAllText: "This message will disappear for everyone in the family chat.",
+    deleteMeTitle: "Delete for me?",
+    deleteMeText: "The message will disappear only for you; everyone else keeps it.",
+    saveFailed: "Could not save.",
+    shareFailed: "Could not share.",
+    deleteFailed: "Could not delete.",
+    deleted: "Message deleted",
+  },
+  ru: {
+    open: "Открыть",
+    close: "Закрыть",
+    prev: "Предыдущее",
+    next: "Следующее",
+    actions: "Действия",
+    copy: "Копировать текст",
+    copied: "Текст скопирован",
+    save: "Сохранить",
+    saved: "Сохранено",
+    share: "Поделиться",
+    delete: "Удалить",
+    cancel: "Отмена",
+    deleteAllTitle: "Удалить для всех?",
+    deleteAllText: "Сообщение исчезнет у всех в семейном чате.",
+    deleteMeTitle: "Удалить для меня?",
+    deleteMeText: "Сообщение исчезнет только у тебя, у остальных останется.",
+    saveFailed: "Не удалось сохранить.",
+    shareFailed: "Не удалось поделиться.",
+    deleteFailed: "Не удалось удалить.",
+    deleted: "Сообщение удалено",
+  },
+  fr: {
+    open: "Ouvrir",
+    close: "Fermer",
+    prev: "Précédent",
+    next: "Suivant",
+    actions: "Actions",
+    copy: "Copier le texte",
+    copied: "Texte copié",
+    save: "Enregistrer",
+    saved: "Enregistré",
+    share: "Partager",
+    delete: "Supprimer",
+    cancel: "Annuler",
+    deleteAllTitle: "Supprimer pour tous ?",
+    deleteAllText: "Le message disparaîtra pour toute la famille.",
+    deleteMeTitle: "Supprimer pour moi ?",
+    deleteMeText: "Le message disparaîtra seulement pour vous, les autres le garderont.",
+    saveFailed: "Échec de l’enregistrement.",
+    shareFailed: "Échec du partage.",
+    deleteFailed: "Échec de la suppression.",
+    deleted: "Message supprimé",
+  },
 };
 
 const MAX_ZOOM = 5;
@@ -80,6 +180,116 @@ function touchDistance(touches: TouchList) {
   return Math.hypot(
     touches[0].clientX - touches[1].clientX,
     touches[0].clientY - touches[1].clientY,
+  );
+}
+
+interface SheetAction {
+  key: string;
+  label: string;
+  icon: ReactNode;
+  danger?: boolean;
+  onSelect: () => void;
+}
+
+/** Bottom sheet with the actions for one message. */
+function ActionSheet({
+  actions,
+  cancelLabel,
+  onClose,
+}: {
+  actions: SheetAction[];
+  cancelLabel: string;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return createPortal(
+    <div className="fixed inset-0 z-[90] flex items-end bg-black/50" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="w-full rounded-t-3xl bg-card p-3 text-card-foreground shadow-xl"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 0.75rem)" }}
+        onClick={(event) => event.stopPropagation()}
+      >
+        {actions.map((action) => (
+          <button
+            key={action.key}
+            type="button"
+            onClick={action.onSelect}
+            className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-base font-medium active:bg-secondary ${action.danger ? "text-destructive" : ""}`}
+          >
+            {action.icon}
+            {action.label}
+          </button>
+        ))}
+        <button
+          type="button"
+          onClick={onClose}
+          className="mt-1 w-full rounded-2xl px-4 py-3 text-center text-base font-semibold opacity-70 active:bg-secondary"
+        >
+          {cancelLabel}
+        </button>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+/** Small "are you sure?" box; sits above the full-screen viewer too. */
+function ConfirmBox({
+  title,
+  text,
+  confirmLabel,
+  cancelLabel,
+  onConfirm,
+  onCancel,
+}: {
+  title: string;
+  text: string;
+  confirmLabel: string;
+  cancelLabel: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 p-6"
+      onClick={onCancel}
+    >
+      <div
+        role="alertdialog"
+        aria-modal="true"
+        className="w-full max-w-sm rounded-3xl bg-card p-5 text-card-foreground shadow-xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <h2 className="text-lg font-bold">{title}</h2>
+        <p className="mt-2 text-sm opacity-80">{text}</p>
+        <div className="mt-5 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-full px-4 py-2 text-sm font-semibold active:bg-secondary"
+          >
+            {cancelLabel}
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="rounded-full bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground"
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -93,13 +303,21 @@ function MediaViewer({
   index,
   onIndex,
   onClose,
+  onSave,
+  onShare,
+  onDelete,
+  busy,
   labels,
 }: {
   items: ViewerItem[];
   index: number;
   onIndex: (index: number) => void;
   onClose: () => void;
-  labels: { close: string; prev: string; next: string };
+  onSave: (id: string) => void;
+  onShare: (id: string) => void;
+  onDelete: (id: string) => void;
+  busy: boolean;
+  labels: { close: string; prev: string; next: string; save: string; share: string; delete: string };
 }) {
   const item = items[index];
   const [scale, setScale] = useState(1);
@@ -274,14 +492,46 @@ function MediaViewer({
         <span className="text-sm opacity-80">
           {index + 1} / {items.length}
         </span>
-        <button
-          type="button"
-          aria-label={labels.close}
-          onClick={onClose}
-          className="rounded-full bg-white/15 p-2 active:bg-white/30"
-        >
-          <X className="h-6 w-6" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            aria-label={labels.save}
+            title={labels.save}
+            disabled={busy}
+            onClick={() => onSave(item.id)}
+            className="rounded-full bg-white/15 p-2 active:bg-white/30 disabled:opacity-40"
+          >
+            <Download className="h-6 w-6" />
+          </button>
+          <button
+            type="button"
+            aria-label={labels.share}
+            title={labels.share}
+            disabled={busy}
+            onClick={() => onShare(item.id)}
+            className="rounded-full bg-white/15 p-2 active:bg-white/30 disabled:opacity-40"
+          >
+            <Share2 className="h-6 w-6" />
+          </button>
+          <button
+            type="button"
+            aria-label={labels.delete}
+            title={labels.delete}
+            disabled={busy}
+            onClick={() => onDelete(item.id)}
+            className="rounded-full bg-white/15 p-2 active:bg-white/30 disabled:opacity-40"
+          >
+            <Trash2 className="h-6 w-6" />
+          </button>
+          <button
+            type="button"
+            aria-label={labels.close}
+            onClick={onClose}
+            className="rounded-full bg-white/15 p-2 active:bg-white/30"
+          >
+            <X className="h-6 w-6" />
+          </button>
+        </div>
       </div>
       <div
         className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden"
@@ -346,6 +596,10 @@ function FamilyChatPage() {
   const [sending, setSending] = useState(false);
   const [recording, setRecording] = useState(false);
   const [viewerId, setViewerId] = useState<string | null>(null);
+  const [menuId, setMenuId] = useState<string | null>(null);
+  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [hidden, setHidden] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -449,6 +703,14 @@ function FamilyChatPage() {
         },
         () => void loadMessages(),
       )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "family_messages" },
+        (payload) => {
+          const removedId = (payload.old as { id?: string } | null)?.id;
+          if (removedId) setMessages((current) => current.filter((m) => m.id !== removedId));
+        },
+      )
       .subscribe();
     return () => {
       active = false;
@@ -459,6 +721,21 @@ function FamilyChatPage() {
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
+
+  // Messages the person removed "for me only" (kept on this device).
+  const hiddenKey = familyId && userId ? `kepatina/chat-hidden/${familyId}/${userId}` : "";
+  useEffect(() => {
+    if (!hiddenKey) {
+      setHidden([]);
+      return;
+    }
+    try {
+      const parsed: unknown = JSON.parse(localStorage.getItem(hiddenKey) ?? "[]");
+      setHidden(Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === "string") : []);
+    } catch {
+      setHidden([]);
+    }
+  }, [hiddenKey]);
 
   async function sendMessage(content: string) {
     if (!family || !user || !online || sending) return;
@@ -532,7 +809,8 @@ function FamilyChatPage() {
     }
   }
 
-  const viewerItems: ViewerItem[] = messages.flatMap((message) =>
+  const visibleMessages = messages.filter((message) => !hidden.includes(message.id));
+  const viewerItems: ViewerItem[] = visibleMessages.flatMap((message) =>
     (message.kind === "image" || message.kind === "video") && message.mediaUrl
       ? [{ id: message.id, kind: message.kind, url: message.mediaUrl }]
       : [],
@@ -557,6 +835,154 @@ function FamilyChatPage() {
   function closeViewer() {
     if (window.history.state?.kepViewer) window.history.back();
     else setViewerId(null);
+  }
+
+  // the open item vanished (deleted by someone else): leave the viewer
+  useEffect(() => {
+    if (viewerId !== null && viewerIndex < 0 && !loading) closeViewer();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewerId, viewerIndex, loading]);
+
+  const labels = CHAT_LABELS[settings.lang];
+
+  function fileStamp(message: FamilyMessage) {
+    const d = new Date(message.created_at);
+    const two = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}${two(d.getMonth() + 1)}${two(d.getDate())}-${two(d.getHours())}${two(d.getMinutes())}${two(d.getSeconds())}`;
+  }
+
+  function mediaFileName(message: FamilyMessage) {
+    const fromPath = message.media_path?.match(/\.([a-z0-9]{2,5})$/i)?.[1]?.toLowerCase();
+    const fallback = { image: "jpg", video: "mp4", audio: "m4a", text: "txt" }[message.kind];
+    return `kepatina-${message.kind}-${fileStamp(message)}.${fromPath ?? fallback}`;
+  }
+
+  /** A fresh link, because the one shown in the chat expires after an hour. */
+  async function freshMediaUrl(message: FamilyMessage) {
+    if (message.media_path) {
+      const { data, error } = await supabase.storage
+        .from("family-chat")
+        .createSignedUrl(message.media_path, 600);
+      if (!error && data?.signedUrl) return data.signedUrl;
+    }
+    if (message.mediaUrl) return message.mediaUrl;
+    throw new Error(t.famChatMediaFailed);
+  }
+
+  async function runAction(task: () => Promise<void>, failText: string) {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await task();
+    } catch (error) {
+      logChatError("message action", error);
+      const detail = errorMessage(error);
+      toast.error(detail ? `${failText} ${detail}` : failText);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function findMessage(id: string) {
+    return messages.find((message) => message.id === id);
+  }
+
+  async function copyToClipboard(text: string) {
+    await navigator.clipboard.writeText(text);
+    toast.success(labels.copied);
+  }
+
+  function copyMessage(id: string) {
+    const message = findMessage(id);
+    setMenuId(null);
+    if (!message || message.kind !== "text") return;
+    void runAction(() => copyToClipboard(message.content ?? ""), labels.saveFailed);
+  }
+
+  function saveMessage(id: string) {
+    const message = findMessage(id);
+    setMenuId(null);
+    if (!message) return;
+    void runAction(async () => {
+      if (message.kind === "text") {
+        const where = await saveText(message.content ?? "", `kepatina-text-${fileStamp(message)}.txt`);
+        toast.success(where ? `${labels.saved}: ${where}` : labels.saved);
+        return;
+      }
+      const where = await saveMedia(
+        await freshMediaUrl(message),
+        message.kind,
+        mediaFileName(message),
+        labels.save,
+      );
+      if (where) toast.success(`${labels.saved}: ${where}`);
+    }, labels.saveFailed);
+  }
+
+  function shareMessage(id: string) {
+    const message = findMessage(id);
+    setMenuId(null);
+    if (!message) return;
+    void runAction(async () => {
+      if (message.kind === "text") {
+        const text = message.content ?? "";
+        if (!(await shareText(labels.share, text))) await copyToClipboard(text);
+        return;
+      }
+      await shareMedia(
+        await freshMediaUrl(message),
+        message.kind,
+        mediaFileName(message),
+        labels.share,
+      );
+    }, labels.shareFailed);
+  }
+
+  function askDelete(id: string) {
+    setMenuId(null);
+    setConfirmId(id);
+  }
+
+  async function performDelete() {
+    const message = confirmId ? findMessage(confirmId) : undefined;
+    setConfirmId(null);
+    if (!message || !user) return;
+    await runAction(async () => {
+      if (message.sender_id === user.id) {
+        // own message: removed for everyone, together with its file
+        const { data, error } = await supabase
+          .from("family_messages")
+          .delete()
+          .eq("id", message.id)
+          .eq("sender_id", user.id)
+          .select("id");
+        if (error) throw error;
+        if (!data?.length) throw new Error("not allowed");
+        if (message.media_path) {
+          const { error: removeError } = await supabase.storage
+            .from("family-chat")
+            .remove([message.media_path]);
+          if (removeError) logChatError("remove deleted media", removeError);
+        }
+        setMessages((current) => current.filter((m) => m.id !== message.id));
+      } else {
+        // someone else's message: hidden only for this person, on this device
+        const next = [...hidden, message.id].slice(-500);
+        setHidden(next);
+        try {
+          localStorage.setItem(hiddenKey, JSON.stringify(next));
+        } catch {
+          /* storage unavailable: it just comes back after a reload */
+        }
+      }
+      if (viewerId === message.id) {
+        const at = viewerItems.findIndex((item) => item.id === message.id);
+        const neighbour = viewerItems[at + 1] ?? viewerItems[at - 1];
+        if (neighbour) setViewerId(neighbour.id);
+        else closeViewer();
+      }
+      toast.success(labels.deleted);
+    }, labels.deleteFailed);
   }
 
   async function startRecording() {
@@ -622,7 +1048,8 @@ function FamilyChatPage() {
   );
   const dateLocale = { lv: "lv-LV", en: "en", ru: "ru-RU", fr: "fr-FR" }[settings.lang];
   const voiceActionLabel = recording ? t.famChatStop : t.famChatVoice;
-  const viewerLabels = VIEWER_LABELS[settings.lang];
+  const menuMessage = menuId ? messages.find((message) => message.id === menuId) : undefined;
+  const confirmMessage = confirmId ? messages.find((message) => message.id === confirmId) : undefined;
 
   return (
     <>
@@ -641,27 +1068,44 @@ function FamilyChatPage() {
             <p className="m-auto text-sm text-muted-foreground">{t.famChatLoading}</p>
           ) : loadFailed ? (
             <p className="m-auto text-sm text-muted-foreground">{t.famChatFailed}</p>
-          ) : messages.length === 0 ? (
+          ) : visibleMessages.length === 0 ? (
             <p className="m-auto max-w-xs text-center text-sm text-muted-foreground">
               {online ? t.famChatEmpty : t.offline}
             </p>
           ) : (
-            messages.map((message) => {
+            visibleMessages.map((message) => {
               const own = message.sender_id === user.id;
               return (
                 <article
                   key={message.id}
                   className={`max-w-[88%] rounded-2xl px-3 py-2 ${own ? "ml-auto bg-primary text-primary-foreground" : "mr-auto bg-secondary"}`}
+                  onContextMenu={(event) => {
+                    // long-press on a photo / video / voice message opens the same actions as the ⋮ button
+                    if (message.kind === "text") return;
+                    event.preventDefault();
+                    setMenuId(message.id);
+                  }}
                 >
-                  <p className="mb-1 truncate text-xs font-bold opacity-80">
-                    {own ? t.famYou : memberNames.get(message.sender_id)}
-                  </p>
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <p className="truncate text-xs font-bold opacity-80">
+                      {own ? t.famYou : memberNames.get(message.sender_id)}
+                    </p>
+                    <button
+                      type="button"
+                      aria-label={labels.actions}
+                      title={labels.actions}
+                      onClick={() => setMenuId(message.id)}
+                      className="-mr-1 shrink-0 rounded-full p-1 opacity-70 active:bg-black/10"
+                    >
+                      <EllipsisVertical className="h-4 w-4" />
+                    </button>
+                  </div>
                   {message.kind === "text" ? (
                     <p className="whitespace-pre-wrap break-words text-sm">{message.content}</p>
                   ) : message.kind === "image" && message.mediaUrl ? (
                     <button
                       type="button"
-                      aria-label={viewerLabels.open}
+                      aria-label={labels.open}
                       onClick={() => openViewer(message.id)}
                       className="block"
                     >
@@ -674,7 +1118,7 @@ function FamilyChatPage() {
                   ) : message.kind === "video" && message.mediaUrl ? (
                     <button
                       type="button"
-                      aria-label={viewerLabels.open}
+                      aria-label={labels.open}
                       onClick={() => openViewer(message.id)}
                       className="relative block overflow-hidden rounded-xl"
                     >
@@ -787,7 +1231,58 @@ function FamilyChatPage() {
           index={viewerIndex}
           onIndex={(next) => setViewerId(viewerItems[next]?.id ?? null)}
           onClose={closeViewer}
-          labels={viewerLabels}
+          onSave={saveMessage}
+          onShare={shareMessage}
+          onDelete={askDelete}
+          busy={busy}
+          labels={labels}
+        />
+      )}
+      {menuMessage && (
+        <ActionSheet
+          cancelLabel={labels.cancel}
+          onClose={() => setMenuId(null)}
+          actions={[
+            ...(menuMessage.kind === "text"
+              ? [
+                  {
+                    key: "copy",
+                    label: labels.copy,
+                    icon: <Copy className="h-5 w-5" />,
+                    onSelect: () => copyMessage(menuMessage.id),
+                  },
+                ]
+              : []),
+            {
+              key: "save",
+              label: labels.save,
+              icon: <Download className="h-5 w-5" />,
+              onSelect: () => saveMessage(menuMessage.id),
+            },
+            {
+              key: "share",
+              label: labels.share,
+              icon: <Share2 className="h-5 w-5" />,
+              onSelect: () => shareMessage(menuMessage.id),
+            },
+            {
+              key: "delete",
+              label: labels.delete,
+              icon: <Trash2 className="h-5 w-5" />,
+              danger: true,
+              onSelect: () => askDelete(menuMessage.id),
+            },
+          ]}
+        />
+      )}
+      {confirmMessage && (
+        <ConfirmBox
+          title={confirmMessage.sender_id === user.id ? labels.deleteAllTitle : labels.deleteMeTitle}
+          text={confirmMessage.sender_id === user.id ? labels.deleteAllText : labels.deleteMeText}
+          confirmLabel={labels.delete}
+          cancelLabel={labels.cancel}
+          onConfirm={() => void performDelete()}
+          onCancel={() => setConfirmId(null)}
         />
       )}
     </>
