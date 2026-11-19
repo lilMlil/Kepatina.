@@ -22,7 +22,7 @@ CREATE INDEX IF NOT EXISTS family_messages_timeline_idx
   ON public.family_messages (family_id, created_at DESC);
 
 ALTER TABLE public.family_messages ENABLE ROW LEVEL SECURITY;
-GRANT SELECT, INSERT ON public.family_messages TO authenticated;
+GRANT SELECT, INSERT, DELETE ON public.family_messages TO authenticated;
 GRANT ALL ON public.family_messages TO service_role;
 DROP POLICY IF EXISTS "family members read chat" ON public.family_messages;
 DROP POLICY IF EXISTS "family members send chat" ON public.family_messages;
@@ -30,6 +30,13 @@ CREATE POLICY "family members read chat" ON public.family_messages
   FOR SELECT TO authenticated USING (family_id = public.my_family_id());
 CREATE POLICY "family members send chat" ON public.family_messages
   FOR INSERT TO authenticated WITH CHECK (
+    family_id = public.my_family_id() AND sender_id = auth.uid()
+  );
+
+-- People can delete only their own messages (their own media files are covered by the storage policy below).
+DROP POLICY IF EXISTS "senders delete own chat" ON public.family_messages;
+CREATE POLICY "senders delete own chat" ON public.family_messages
+  FOR DELETE TO authenticated USING (
     family_id = public.my_family_id() AND sender_id = auth.uid()
   );
 
