@@ -31,6 +31,13 @@ export interface AccountCopy {
   importBad: string;
   exportFail: string;
   storageFull: string;
+  sharePet: string;
+  stopSharingPet: string;
+  sharedByFamily: string;
+  sharePetDescription: string;
+  petShared: string;
+  petUnshared: string;
+  petShareError: string;
 }
 
 export const accountCopy: Record<Lang, AccountCopy> = {
@@ -50,7 +57,8 @@ export const accountCopy: Record<Lang, AccountCopy> = {
     deleteTitle: "Dzēst kontu?",
     deleteBody:
       "Konts un visi mākoņa dati tiks neatgriezeniski dzēsti. Dati šajā tālrunī paliks, līdz tu tos izdzēsīsi vai noņemsi lietotni.",
-    deleteFamilyNote: " Tu esi ģimenes izveidotājs — vadība pāries nākamajam dalībniekam, un kopīgie dati paliks viņiem.",
+    deleteFamilyNote:
+      " Tu esi ģimenes izveidotājs — vadība pāries nākamajam dalībniekam, un kopīgie dati paliks viņiem.",
     deleteConfirm: "Dzēst",
     deleted: "Konts dzēsts.",
     deleteFail: "Neizdevās dzēst kontu",
@@ -67,6 +75,14 @@ export const accountCopy: Record<Lang, AccountCopy> = {
     exportFail: "Neizdevās izveidot kopiju.",
     storageFull:
       "Tālruņa atmiņa ir pilna — jaunākās izmaiņas netika saglabātas. Izveido rezerves kopiju iestatījumos.",
+    sharePet: "Kopīgot ar ģimeni",
+    stopSharingPet: "Pārtraukt kopīgošanu",
+    sharedByFamily: "Kopīgo ģimenes loceklis",
+    sharePetDescription:
+      "Tiks kopīgots mīluļa profils, atgādnes un aprūpes ieraksti; failu saturs paliek tikai šajā tālrunī.",
+    petShared: "Mīluļa profils un aprūpes ieraksti tagad ir kopīgi.",
+    petUnshared: "Mīluļa profils vairs netiek kopīgots.",
+    petShareError: "Neizdevās mainīt kopīgošanu. Mēģini vēlreiz.",
   },
   en: {
     showPw: "Show password",
@@ -84,7 +100,8 @@ export const accountCopy: Record<Lang, AccountCopy> = {
     deleteTitle: "Delete account?",
     deleteBody:
       "Your account and all cloud data will be permanently deleted. Data on this phone stays until you delete it or remove the app.",
-    deleteFamilyNote: " You created the family group — the next member will take over and keep the shared data.",
+    deleteFamilyNote:
+      " You created the family group — the next member will take over and keep the shared data.",
     deleteConfirm: "Delete",
     deleted: "Account deleted.",
     deleteFail: "Couldn't delete the account",
@@ -101,6 +118,14 @@ export const accountCopy: Record<Lang, AccountCopy> = {
     exportFail: "Couldn't create the backup.",
     storageFull:
       "Phone storage is full — the latest changes were not saved. Make a backup in Settings.",
+    sharePet: "Share with family",
+    stopSharingPet: "Stop sharing",
+    sharedByFamily: "Shared by a family member",
+    sharePetDescription:
+      "The pet profile, reminders, and care records will be shared; file contents stay on this phone.",
+    petShared: "The pet profile and care records are now shared.",
+    petUnshared: "The pet profile is no longer shared.",
+    petShareError: "Couldn't change sharing. Please try again.",
   },
   ru: {
     showPw: "Показать пароль",
@@ -118,7 +143,8 @@ export const accountCopy: Record<Lang, AccountCopy> = {
     deleteTitle: "Удалить аккаунт?",
     deleteBody:
       "Аккаунт и все данные в облаке будут удалены навсегда. Данные на этом телефоне останутся, пока вы не удалите их или само приложение.",
-    deleteFamilyNote: " Вы создали семейную группу — управление перейдёт следующему участнику, и общие данные останутся у него.",
+    deleteFamilyNote:
+      " Вы создали семейную группу — управление перейдёт следующему участнику, и общие данные останутся у него.",
     deleteConfirm: "Удалить",
     deleted: "Аккаунт удалён.",
     deleteFail: "Не удалось удалить аккаунт",
@@ -135,6 +161,14 @@ export const accountCopy: Record<Lang, AccountCopy> = {
     exportFail: "Не удалось создать копию.",
     storageFull:
       "Память телефона заполнена — последние изменения не сохранены. Сделайте резервную копию в настройках.",
+    sharePet: "Поделиться с семьёй",
+    stopSharingPet: "Перестать делиться",
+    sharedByFamily: "Опубликовано членом семьи",
+    sharePetDescription:
+      "Будут доступны профиль питомца, напоминания и записи об уходе; файлы останутся только на этом телефоне.",
+    petShared: "Профиль питомца и записи об уходе доступны семье.",
+    petUnshared: "Профиль питомца больше не доступен семье.",
+    petShareError: "Не удалось изменить доступ. Попробуйте ещё раз.",
   },
   fr: {
     showPw: "Afficher le mot de passe",
@@ -171,5 +205,13 @@ export const accountCopy: Record<Lang, AccountCopy> = {
     exportFail: "Impossible de créer la sauvegarde.",
     storageFull:
       "La mémoire du téléphone est pleine — les dernières modifications n’ont pas été enregistrées. Faites une sauvegarde dans les réglages.",
+    sharePet: "Partager avec la famille",
+    stopSharingPet: "Arrêter le partage",
+    sharedByFamily: "Partagé par un membre de la famille",
+    sharePetDescription:
+      "Le profil, les rappels et les données de soins seront partagés ; les fichiers restent sur ce téléphone.",
+    petShared: "Le profil et les données de soins sont maintenant partagés.",
+    petUnshared: "Le profil de l’animal n’est plus partagé.",
+    petShareError: "Impossible de modifier le partage. Réessayez.",
   },
 };

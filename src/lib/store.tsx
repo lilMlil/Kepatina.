@@ -31,6 +31,7 @@ import type { MedCourse } from "./meds";
 import type { Expense } from "./expenses";
 import { deleteLocalFiles, type StoredFile } from "./media";
 import type { DocumentEntry, MemoryEntry } from "./memories";
+import { emptyState, partitionPetState, type Owner, type SavedState } from "./family-state";
 import {
   dueForNotification,
   nextDueDate,
@@ -42,27 +43,6 @@ import {
 
 export type Theme = "light" | "dark";
 
-interface Owner {
-  name: string;
-  photo: string | null;
-  phone?: string;
-}
-
-interface SavedState {
-  pets: Pet[];
-  reminders: Reminder[];
-  selectedPetId: string | null;
-  owner: Owner;
-  checks: Record<string, boolean>;
-  weights: WeightEntry[];
-  vaccines: VaccineEntry[];
-  visits: VisitEntry[];
-  memories: MemoryEntry[];
-  documents: DocumentEntry[];
-  meds: MedCourse[];
-  expenses: Expense[];
-}
-
 interface Settings {
   theme: Theme;
   lang: Lang;
@@ -72,20 +52,6 @@ const STATE_KEY = "kepatina/state-v1";
 const SETTINGS_KEY = "kepatina/settings-v1";
 const SYNCED_KEY = "kepatina/synced-user";
 const BEFORE_RESTORE_KEY = "kepatina/state-before-restore";
-const emptyState: SavedState = {
-  pets: [],
-  reminders: [],
-  selectedPetId: null,
-  owner: { name: "", photo: null },
-  checks: {},
-  weights: [],
-  vaccines: [],
-  visits: [],
-  memories: [],
-  documents: [],
-  meds: [],
-  expenses: [],
-};
 
 function mergeById<T extends { id: string }>(local: T[] = [], remote: T[] = []): T[] {
   const seen = new Set(remote.map((x) => x.id));
@@ -124,6 +90,7 @@ export interface FamilyInfo {
   code: string;
   ownerId: string;
   members: { userId: string; email: string | null; joinedAt: string | null }[];
+  sharedPetOwners: Record<string, string>;
 }
 
 /** A family has at most this many members (the database enforces the same limit). */
@@ -135,6 +102,46 @@ export type JoinError = "invalid" | "already" | "full" | "limit" | "error";
 interface FamilyLoad {
   info: FamilyInfo;
   data: Partial<SavedState>;
+}
+
+interface FamilyData extends Partial<SavedState> {
+  sharedPetOwners?: Record<string, string>;
+}
+
+function familySharedState(
+  state: Partial<SavedState>,
+  sharedPetOwners: Record<string, string>,
+): SavedState {
+  return partitionPetState({ ...emptyState, ...state }, new Set(Object.keys(sharedPetOwners)))
+    .sharedState;
+}
+
+function sharedFamilyData(state: SavedState, sharedPetOwners: Record<string, string>): FamilyData {
+  return { ...familySharedState(state, sharedPetOwners), sharedPetOwners };
+}
+
+function otherMembersPetIds(family: FamilyInfo, userId: string): Set<string> {
+  return new Set(
+    Object.entries(family.sharedPetOwners)
+      .filter(([, ownerId]) => ownerId !== userId)
+      .map(([petId]) => petId),
+  );
+}
+
+function personalFamilyData(
+  state: SavedState,
+  sharedPetOwners: Record<string, string>,
+  userId: string,
+): SavedState {
+  const sharedPetIds = new Set(Object.keys(sharedPetOwners));
+  const privateState = partitionPetState(state, sharedPetIds).privateState;
+  const ownedPetIds = new Set(
+    Object.entries(sharedPetOwners)
+      .filter(([, ownerId]) => ownerId === userId)
+      .map(([petId]) => petId),
+  );
+  const ownedSharedState = partitionPetState(state, ownedPetIds).sharedState;
+  return mergeStates(privateState, ownedSharedState);
 }
 
 function sameFamily(a: FamilyInfo | null, b: FamilyInfo | null): boolean {
@@ -186,6 +193,7 @@ interface Ctx extends SavedState {
   family: FamilyInfo | null;
   createFamily: () => Promise<boolean>;
   joinFamily: (code: string) => Promise<JoinError | null>;
+  setPetShared: (petId: string, shared: boolean) => boolean;
   leaveFamily: () => Promise<void>;
   removeMember: (userId: string) => Promise<void>;
   regenerateCode: () => Promise<boolean>;
@@ -289,56 +297,67 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   /** null = not in a family; "error" = could not find out (network / server) — never treat that as "not in a family". */
-  const loadFamily = useCallback(
-    async (uid: string): Promise<FamilyLoad | null | "error"> => {
-      const { data: mem, error: memError } = await supabase
+  const loadFamily = useCallback(async (uid: string): Promise<FamilyLoad | null | "error"> => {
+    const { data: mem, error: memError } = await supabase
+      .from("family_members")
+      .select("family_id")
+      .eq("user_id", uid)
+      .maybeSingle();
+    if (memError) return "error";
+    if (!mem) return null;
+    const [famRes, membersRes] = await Promise.all([
+      supabase
+        .from("families")
+        .select("id, invite_code, owner_id, data")
+        .eq("id", mem.family_id)
+        .maybeSingle(),
+      supabase
         .from("family_members")
-        .select("family_id")
-        .eq("user_id", uid)
-        .maybeSingle();
-      if (memError) return "error";
-      if (!mem) return null;
-      const [famRes, membersRes] = await Promise.all([
-        supabase
-          .from("families")
-          .select("id, invite_code, owner_id, data")
-          .eq("id", mem.family_id)
-          .maybeSingle(),
-        supabase
-          .from("family_members")
-          .select("user_id, email, joined_at")
-          .eq("family_id", mem.family_id)
-          .order("joined_at"),
-      ]);
-      if (famRes.error || membersRes.error) return "error";
-      const fam = famRes.data;
-      if (!fam) return null;
-      return {
-        info: {
-          id: fam.id,
-          code: fam.invite_code,
-          ownerId: fam.owner_id,
-          members: (membersRes.data ?? []).map((m) => ({
-            userId: m.user_id,
-            email: m.email,
-            joinedAt: m.joined_at ?? null,
-          })),
-        },
-        data: (fam.data ?? {}) as Partial<SavedState>,
-      };
-    },
-    [],
-  );
+        .select("user_id, email, joined_at")
+        .eq("family_id", mem.family_id)
+        .order("joined_at"),
+    ]);
+    if (famRes.error || membersRes.error) return "error";
+    const fam = famRes.data;
+    if (!fam) return null;
+    const rawData = (fam.data ?? {}) as FamilyData;
+    const sharedPetOwners = {
+      ...Object.fromEntries((rawData.pets ?? []).map((pet) => [pet.id, fam.owner_id])),
+      ...(rawData.sharedPetOwners ?? {}),
+    };
+    const { sharedPetOwners: _ignored, ...data } = rawData;
+    return {
+      info: {
+        id: fam.id,
+        code: fam.invite_code,
+        ownerId: fam.owner_id,
+        sharedPetOwners,
+        members: (membersRes.data ?? []).map((m) => ({
+          userId: m.user_id,
+          email: m.email,
+          joinedAt: m.joined_at ?? null,
+        })),
+      },
+      data,
+    };
+  }, []);
 
   const hasContent = (d: Partial<SavedState> | undefined): d is Partial<SavedState> =>
     !!(
       d &&
       (d.pets?.length ||
         d.reminders?.length ||
+        d.weights?.length ||
+        d.vaccines?.length ||
+        d.visits?.length ||
         d.memories?.length ||
         d.documents?.length ||
+        d.meds?.length ||
+        d.expenses?.length ||
+        Object.keys(d.checks ?? {}).length ||
         d.owner?.name ||
-        d.owner?.photo)
+        d.owner?.photo ||
+        d.owner?.phone)
     );
 
   // On sign-in (or reconnect): load family or personal cloud state, or upload local state if none exists
@@ -365,13 +384,51 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return;
       }
       if (fam) {
-        setFamily(fam.info);
-        if (hasContent(fam.data)) {
-          lastPushed.current = JSON.stringify(fam.data);
-          setState(
-            knownDevice ? { ...emptyState, ...fam.data } : mergeStates(stateRef.current, fam.data),
-          );
+        const { data: personalData, error: personalError } = await supabase
+          .from("user_state")
+          .select("data")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (cancelled) return;
+        if (personalError) {
+          tryAgainLater();
+          return;
         }
+        const remotePersonal = personalData?.data as Partial<SavedState> | undefined;
+        const familyInfo = {
+          ...fam.info,
+          sharedPetOwners: { ...fam.info.sharedPetOwners },
+        };
+        setFamily(familyInfo);
+        const sharedPetIds = new Set(Object.keys(familyInfo.sharedPetOwners));
+        const personal = hasContent(remotePersonal)
+          ? knownDevice
+            ? { ...emptyState, ...remotePersonal }
+            : mergeStates(stateRef.current, remotePersonal)
+          : personalFamilyData(stateRef.current, familyInfo.sharedPetOwners, user.id);
+        const privatePersonal = partitionPetState(personal, sharedPetIds).privateState;
+        if (!hasContent(remotePersonal)) {
+          const { error: backupError } = await supabase.from("user_state").upsert({
+            user_id: user.id,
+            data: personalFamilyData(personal, familyInfo.sharedPetOwners, user.id) as never,
+          });
+          if (cancelled) return;
+          if (backupError) {
+            tryAgainLater();
+            return;
+          }
+        }
+        if (!hasContent(fam.data)) {
+          lastPushed.current = "";
+        } else {
+          lastPushed.current = JSON.stringify({
+            ...fam.data,
+            sharedPetOwners: familyInfo.sharedPetOwners,
+          });
+        }
+        setState(
+          mergeStates(privatePersonal, familySharedState(fam.data, familyInfo.sharedPetOwners)),
+        );
       } else {
         setFamily(null);
         const { data, error } = await supabase
@@ -386,7 +443,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
         const remote = data?.data as Partial<SavedState> | undefined;
         if (hasContent(remote))
-          setState(knownDevice ? { ...emptyState, ...remote } : mergeStates(stateRef.current, remote));
+          setState(
+            knownDevice ? { ...emptyState, ...remote } : mergeStates(stateRef.current, remote),
+          );
         else
           await supabase
             .from("user_state")
@@ -417,30 +476,52 @@ export function AppProvider({ children }: { children: ReactNode }) {
         { event: "UPDATE", schema: "public", table: "families", filter: `id=eq.${family.id}` },
         (payload) => {
           const row = payload.new as {
-            data?: Partial<SavedState>;
+            data?: FamilyData;
             invite_code?: string;
             owner_id?: string;
           };
+          const currentFamily = familyRef.current;
+          const rowData = row.data;
+          const nextOwners = rowData
+            ? {
+                ...Object.fromEntries(
+                  (rowData.pets ?? []).map((pet) => [pet.id, row.owner_id ?? family.ownerId]),
+                ),
+                ...(rowData.sharedPetOwners ?? {}),
+              }
+            : (currentFamily?.sharedPetOwners ?? family.sharedPetOwners);
+          const data = familySharedState(rowData ?? {}, nextOwners);
           // A new invite code or a new owner (the owner left) arrives here too
           setFamily((cur) =>
             cur &&
             ((row.invite_code && row.invite_code !== cur.code) ||
-              (row.owner_id && row.owner_id !== cur.ownerId))
-              ? { ...cur, code: row.invite_code ?? cur.code, ownerId: row.owner_id ?? cur.ownerId }
+              (row.owner_id && row.owner_id !== cur.ownerId) ||
+              JSON.stringify(nextOwners) !== JSON.stringify(cur.sharedPetOwners))
+              ? {
+                  ...cur,
+                  code: row.invite_code ?? cur.code,
+                  ownerId: row.owner_id ?? cur.ownerId,
+                  sharedPetOwners: nextOwners,
+                }
               : cur,
           );
-          const data = row.data;
-          if (!data) return;
-          const json = JSON.stringify(data);
+          if (!rowData) return;
+          const json = JSON.stringify({ ...rowData, sharedPetOwners: nextOwners });
           if (json === lastPushed.current) return;
           lastPushed.current = json;
-          setState((cur) => ({
-            ...emptyState,
-            ...data,
-            selectedPetId: data.pets?.some((p) => p.id === cur.selectedPetId)
-              ? cur.selectedPetId
-              : (data.selectedPetId ?? null),
-          }));
+          setState((cur) => {
+            const privateState = currentFamily
+              ? partitionPetState(cur, new Set(Object.keys(currentFamily.sharedPetOwners)))
+                  .privateState
+              : cur;
+            const merged = mergeStates(privateState, data);
+            return {
+              ...merged,
+              selectedPetId: merged.pets.some((p) => p.id === cur.selectedPetId)
+                ? cur.selectedPetId
+                : (privateState.selectedPetId ?? null),
+            };
+          });
         },
       )
       .subscribe();
@@ -467,21 +548,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const json = JSON.stringify(state);
       void (async () => {
         if (family) {
-          if (json === lastPushed.current) return;
-          lastPushed.current = json;
+          const personalState = personalFamilyData(state, family.sharedPetOwners, user.id);
+          const { error: personalError } = await supabase.from("user_state").upsert({
+            user_id: user.id,
+            data: personalState as never,
+            updated_at: new Date().toISOString(),
+          });
+          if (personalError) return pushFailed();
+          const sharedData = sharedFamilyData(state, family.sharedPetOwners);
+          const sharedJson = JSON.stringify(sharedData);
+          if (sharedJson === lastPushed.current) {
+            syncWarned.current = false;
+            return;
+          }
           const { data, error } = await supabase
             .from("families")
-            .update({ data: state as never, updated_at: new Date().toISOString() })
+            .update({ data: sharedData as never, updated_at: new Date().toISOString() })
             .eq("id", family.id)
             .select("id");
           if (error) return pushFailed();
+          lastPushed.current = sharedJson;
           syncWarned.current = false;
           // Nothing was updated: we are not in this family any more (removed, or the family is gone)
           if (!data || data.length === 0) void refreshFamilyRef.current();
         } else {
-          const { error } = await supabase
-            .from("user_state")
-            .upsert({ user_id: user.id, data: state as never, updated_at: new Date().toISOString() });
+          const { error } = await supabase.from("user_state").upsert({
+            user_id: user.id,
+            data: state as never,
+            updated_at: new Date().toISOString(),
+          });
           if (error) return pushFailed();
           syncWarned.current = false;
         }
@@ -496,9 +591,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const fam = await loadFamily(user.id);
     if (fam === "error") return; // a network hiccup is not a removal
     if (!fam) {
-      if (familyRef.current) {
+      const currentFamily = familyRef.current;
+      if (currentFamily) {
         lastPushed.current = "";
         toast.info(dicts[settings.lang].famGone);
+        setState(
+          (current) =>
+            partitionPetState(current, otherMembersPetIds(currentFamily, user.id)).privateState,
+        );
       }
       setFamily(null);
       return;
@@ -523,37 +623,65 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const createFamily = useCallback(async () => {
     if (!user) return false;
-    const { error } = await supabase.rpc("create_family", { initial: stateRef.current as never });
+    const personal = stateRef.current;
+    const { error: backupError } = await supabase.from("user_state").upsert({
+      user_id: user.id,
+      data: personal as never,
+      updated_at: new Date().toISOString(),
+    });
+    if (backupError) return false;
+    const initialData = sharedFamilyData(emptyState, {});
+    const { error } = await supabase.rpc("create_family", { initial: initialData as never });
     if (error) return false;
-    lastPushed.current = JSON.stringify(stateRef.current);
+    lastPushed.current = JSON.stringify(initialData);
     await refreshFamily();
     return true;
   }, [user, refreshFamily]);
 
-  const joinFamily = useCallback(
-    async (code: string): Promise<JoinError | null> => {
-      const { data, error } = await supabase.rpc("join_family", { code });
-      if (error) {
-        const m = error.message.toLowerCase();
-        if (m.includes("already in a family")) return "already";
-        if (m.includes("family full")) return "full";
-        if (m.includes("too many attempts")) return "limit";
-        return "error";
+  const setPetShared = useCallback(
+    (petId: string, shared: boolean) => {
+      if (!user || !family) return false;
+      const currentOwner = family.sharedPetOwners[petId];
+      if (shared) {
+        if (currentOwner) return currentOwner === user.id || family.ownerId === user.id;
+        if (!stateRef.current.pets.some((pet) => pet.id === petId)) return false;
+        setFamily((current) =>
+          current
+            ? {
+                ...current,
+                sharedPetOwners: { ...current.sharedPetOwners, [petId]: user.id },
+              }
+            : current,
+        );
+        return true;
       }
-      if (!data) return "invalid";
-      // Joined. Load the family the same way as on a "new device": what is on this phone is MERGED
-      // with the family's data (nothing is lost), then the result is shared with the family.
-      try {
-        localStorage.removeItem(SYNCED_KEY);
-      } catch {
-        /* ignore */
-      }
-      remoteLoaded.current = null;
-      setSyncRetry((n) => n + 1);
-      return null;
+      if (currentOwner !== user.id && family.ownerId !== user.id) return false;
+      setFamily((current) => {
+        if (!current) return current;
+        const sharedPetOwners = { ...current.sharedPetOwners };
+        delete sharedPetOwners[petId];
+        return { ...current, sharedPetOwners };
+      });
+      return true;
     },
-    [],
+    [user, family],
   );
+
+  const joinFamily = useCallback(async (code: string): Promise<JoinError | null> => {
+    const { data, error } = await supabase.rpc("join_family", { code });
+    if (error) {
+      const m = error.message.toLowerCase();
+      if (m.includes("already in a family")) return "already";
+      if (m.includes("family full")) return "full";
+      if (m.includes("too many attempts")) return "limit";
+      return "error";
+    }
+    if (!data) return "invalid";
+    // Reload the member's private cloud state separately from the family's shared pets.
+    remoteLoaded.current = null;
+    setSyncRetry((n) => n + 1);
+    return null;
+  }, []);
 
   const leaveFamily = useCallback(async () => {
     if (!user || !family) return;
@@ -570,12 +698,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
     // If the creator leaves, the database hands the family over to the next member.
     lastPushed.current = "";
+    const keepPetIds = otherMembersPetIds(family, user.id);
+    const personalState = partitionPetState(stateRef.current, keepPetIds).privateState;
+    setState(personalState);
     setFamily(null);
     toast.success(dicts[settings.lang].famLeft);
-    // keep a personal cloud copy of what this phone has (the sync above also retries if this fails)
+    // Keep privately owned pets and data, but do not copy other members' shared bundles.
     const { error: backupError } = await supabase.from("user_state").upsert({
       user_id: user.id,
-      data: stateRef.current as never,
+      data: personalState as never,
       updated_at: new Date().toISOString(),
     });
     if (backupError) {
@@ -772,6 +903,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
           selectedPetId: s.selectedPetId === id ? (next.pets[0]?.id ?? null) : s.selectedPetId,
         };
       });
+      setFamily((current) => {
+        if (!current?.sharedPetOwners[id]) return current;
+        const sharedPetOwners = { ...current.sharedPetOwners };
+        delete sharedPetOwners[id];
+        return { ...current, sharedPetOwners };
+      });
     },
     [settings.lang],
   );
@@ -934,10 +1071,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
       notif,
       enableNotifications,
       signOut: async () => {
+        if (family && user) {
+          setState(
+            partitionPetState(stateRef.current, otherMembersPetIds(family, user.id)).privateState,
+          );
+        }
+        setFamily(null);
         await supabase.auth.signOut();
         remoteLoaded.current = null;
         lastPushed.current = "";
-        setFamily(null);
       },
       deleteAccount,
       recovery,
@@ -948,6 +1090,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       family,
       createFamily,
       joinFamily,
+      setPetShared,
       leaveFamily,
       removeMember,
       regenerateCode,
@@ -975,6 +1118,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       family,
       createFamily,
       joinFamily,
+      setPetShared,
       leaveFamily,
       removeMember,
       regenerateCode,
