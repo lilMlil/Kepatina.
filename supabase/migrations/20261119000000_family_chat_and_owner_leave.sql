@@ -33,6 +33,41 @@ CREATE POLICY "family members send chat" ON public.family_messages
     family_id = public.my_family_id() AND sender_id = auth.uid()
   );
 
+-- Private nicknames: each person's own names for family members (visible only to them).
+-- Older databases lacked this table, which caused: "Could not find the table
+-- 'public.family_member_nicknames' in the schema cache".
+CREATE TABLE IF NOT EXISTS public.family_member_nicknames (
+  family_id uuid NOT NULL REFERENCES public.families(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  member_user_id uuid NOT NULL,
+  nickname text NOT NULL CHECK (length(btrim(nickname)) BETWEEN 1 AND 40),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (family_id, user_id, member_user_id),
+  FOREIGN KEY (family_id, user_id)
+    REFERENCES public.family_members(family_id, user_id) ON DELETE CASCADE,
+  FOREIGN KEY (family_id, member_user_id)
+    REFERENCES public.family_members(family_id, user_id) ON DELETE CASCADE
+);
+ALTER TABLE public.family_member_nicknames ENABLE ROW LEVEL SECURITY;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.family_member_nicknames TO authenticated;
+GRANT ALL ON public.family_member_nicknames TO service_role;
+DROP POLICY IF EXISTS "view own family nicknames" ON public.family_member_nicknames;
+DROP POLICY IF EXISTS "insert own family nicknames" ON public.family_member_nicknames;
+DROP POLICY IF EXISTS "update own family nicknames" ON public.family_member_nicknames;
+DROP POLICY IF EXISTS "delete own family nicknames" ON public.family_member_nicknames;
+CREATE POLICY "view own family nicknames" ON public.family_member_nicknames
+  FOR SELECT TO authenticated USING (user_id = auth.uid() AND family_id = public.my_family_id());
+CREATE POLICY "insert own family nicknames" ON public.family_member_nicknames
+  FOR INSERT TO authenticated WITH CHECK (
+    user_id = auth.uid() AND family_id = public.my_family_id()
+  );
+CREATE POLICY "update own family nicknames" ON public.family_member_nicknames
+  FOR UPDATE TO authenticated USING (
+    user_id = auth.uid() AND family_id = public.my_family_id()
+  ) WITH CHECK (user_id = auth.uid() AND family_id = public.my_family_id());
+CREATE POLICY "delete own family nicknames" ON public.family_member_nicknames
+  FOR DELETE TO authenticated USING (user_id = auth.uid() AND family_id = public.my_family_id());
+
 -- Private media lives at family-id/uploader-id/... . Keep the bucket limits aligned with
 -- the chat UI and ensure existing bucket configuration is repaired as well.
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
