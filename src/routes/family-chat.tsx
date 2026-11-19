@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ArrowUp, Mic, Paperclip, Square } from "lucide-react";
-import { Card, PageHeading } from "@/components/kit";
+import { ArrowUp, Download, Mic, Paperclip, Share2, Square, Trash2 } from "lucide-react";
+import { Card, PageHeading, useConfirm } from "@/components/kit";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
+import { isNative } from "@/lib/native/platform";
 import { useApp } from "@/lib/store";
 
 export const Route = createFileRoute("/family-chat")({
@@ -60,8 +61,29 @@ function mediaExtension(type: string): string {
   );
 }
 
+function safeFileName(name: string): string {
+  return name.replace(/[^a-zA-Z0-9._-]/g, "_") || "family-message";
+}
+
+async function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result !== "string") {
+        reject(new Error("Could not read the file."));
+        return;
+      }
+      resolve(result.slice(result.indexOf(",") + 1));
+    };
+    reader.onerror = () => reject(reader.error ?? new Error("Could not read the file."));
+    reader.readAsDataURL(blob);
+  });
+}
+
 function FamilyChatPage() {
   const { t, family, user, online, settings } = useApp();
+  const { ask, dialog } = useConfirm();
   const [messages, setMessages] = useState<FamilyMessage[]>([]);
   const [nicknames, setNicknames] = useState<Record<string, string>>({});
   const [draft, setDraft] = useState("");
@@ -69,6 +91,7 @@ function FamilyChatPage() {
   const [loadFailed, setLoadFailed] = useState(false);
   const [sending, setSending] = useState(false);
   const [recording, setRecording] = useState(false);
+  const [workingMessageId, setWorkingMessageId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -172,6 +195,15 @@ function FamilyChatPage() {
         },
         () => void loadMessages(),
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "family_messages",
+        },
+        () => void loadMessages(),
+      )
       .subscribe();
     return () => {
       active = false;
@@ -255,6 +287,155 @@ function FamilyChatPage() {
     }
   }
 
+  async function getMessageFile(message: FamilyMessage): Promise<File> {
+    if (message.kind === "text") {
+      return new File([message.content ?? ""], `message-${message.id}.txt`, {
+        type: "text/plain;charset=utf-8",
+      });
+    }
+    if (!message.media_path) throw new Error(t.famChatActionFailed);
+    const { data, error } = await supabase.storage.from("family-chat").download(message.media_path);
+    if (error) throw error;
+    const storedName = message.media_path.split("/").pop() ?? "";
+    const name = storedName.replace(/^[a-f0-9-]{36}-/i, "");
+    return new File([data], safeFileName(name || `${message.kind}.${mediaExtension(data.type)}`), {
+      type: data.type || "application/octet-stream",
+    });
+  }
+
+  async function writeNativeFile(file: File, directory: "Documents" | "Cache"): Promise<string> {
+    const { Directory, Filesystem } = await import("@capacitor/filesystem");
+    const { uri } = await Filesystem.writeFile({
+      path: safeFileName(file.name),
+      data: await blobToBase64(file),
+      directory: Directory[directory],
+      recursive: true,
+    });
+    return uri;
+  }
+
+  async function getMessageShareUrl(message: FamilyMessage): Promise<string | null> {
+    if (!message.media_path) return null;
+    const { data, error } = await supabase.storage
+      .from("family-chat")
+      .createSignedUrl(message.media_path, 3600);
+    if (error) throw error;
+    return data.signedUrl;
+  }
+
+  async function saveMessage(message: FamilyMessage) {
+    if (workingMessageId) return;
+    setWorkingMessageId(message.id);
+    try {
+      const file = await getMessageFile(message);
+      if (isNative()) {
+        await writeNativeFile(file, "Documents");
+      } else {
+        const url = URL.createObjectURL(file);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = file.name;
+        anchor.click();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+      }
+      toast.success(t.famChatSaved);
+    } catch (error) {
+      logChatError("save message", error);
+      toast.error(errorMessage(error) || t.famChatActionFailed);
+    } finally {
+      setWorkingMessageId(null);
+    }
+  }
+
+  async function shareMessage(message: FamilyMessage) {
+    if (workingMessageId) return;
+    setWorkingMessageId(message.id);
+    try {
+      const title = t.famChat;
+      if (message.kind === "text") {
+        const text = message.content ?? "";
+        if (isNative()) {
+          const { Share } = await import("@capacitor/share");
+          await Share.share({ title, text, dialogTitle: title });
+        } else if (typeof navigator.share === "function") {
+          await navigator.share({ title, text });
+        } else if (navigator.clipboard) {
+          await navigator.clipboard.writeText(text);
+          toast.success(t.famChatCopied);
+        } else {
+          toast.error(t.famChatShareUnavailable);
+        }
+        return;
+      }
+
+      const file = await getMessageFile(message);
+      if (isNative()) {
+        const uri = await writeNativeFile(file, "Cache");
+        const { Share } = await import("@capacitor/share");
+        await Share.share({ title, files: [uri], dialogTitle: title });
+      } else if (typeof navigator.share === "function") {
+        if (navigator.canShare?.({ files: [file] })) {
+          await navigator.share({ title, files: [file] });
+        } else {
+          const url = await getMessageShareUrl(message);
+          if (!url) throw new Error(t.famChatShareUnavailable);
+          await navigator.share({ title, url });
+        }
+      } else if (navigator.clipboard) {
+        const url = await getMessageShareUrl(message);
+        if (!url) throw new Error(t.famChatShareUnavailable);
+        await navigator.clipboard.writeText(url);
+        toast.success(t.famChatCopied);
+      } else {
+        toast.error(t.famChatShareUnavailable);
+      }
+    } catch (error) {
+      if (error instanceof Error && (error.name === "AbortError" || /cancel/i.test(error.message)))
+        return;
+      logChatError("share message", error);
+      toast.error(errorMessage(error) || t.famChatActionFailed);
+    } finally {
+      setWorkingMessageId(null);
+    }
+  }
+
+  async function deleteMessage(message: FamilyMessage) {
+    if (!family || !user || workingMessageId) return;
+    setWorkingMessageId(message.id);
+    try {
+      const { data, error } = await supabase
+        .from("family_messages")
+        .delete()
+        .eq("id", message.id)
+        .eq("family_id", family.id)
+        .eq("sender_id", user.id)
+        .select("id")
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) throw new Error(t.famChatActionFailed);
+      setMessages((current) => current.filter((item) => item.id !== message.id));
+
+      if (message.media_path) {
+        try {
+          const { error: storageError } = await supabase.storage
+            .from("family-chat")
+            .remove([message.media_path]);
+          if (storageError) throw storageError;
+        } catch (error) {
+          logChatError("remove deleted message media", error);
+          toast.error(t.famChatMediaCleanupFailed);
+          return;
+        }
+      }
+      toast.success(t.famChatDeleted);
+    } catch (error) {
+      logChatError("delete message", error);
+      toast.error(errorMessage(error) || t.famChatActionFailed);
+    } finally {
+      setWorkingMessageId(null);
+    }
+  }
+
   async function startRecording() {
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
       toast.error(t.famChatUnsupported);
@@ -321,6 +502,7 @@ function FamilyChatPage() {
 
   return (
     <>
+      {dialog}
       <PageHeading
         title={t.famChat}
         subtitle={family.members.map((m) => memberNames.get(m.userId)).join(", ")}
@@ -384,6 +566,47 @@ function FamilyChatPage() {
                       minute: "2-digit",
                     })}
                   </time>
+                  <div className="mt-1 flex justify-end gap-2 border-t border-current/10 pt-1">
+                    <button
+                      type="button"
+                      aria-label={t.famChatSave}
+                      title={t.famChatSave}
+                      disabled={workingMessageId !== null}
+                      onClick={() => void saveMessage(message)}
+                      className="flex h-8 w-8 items-center justify-center rounded-full opacity-75 hover:opacity-100 disabled:opacity-40"
+                    >
+                      <Download className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={t.famChatShare}
+                      title={t.famChatShare}
+                      disabled={workingMessageId !== null}
+                      onClick={() => void shareMessage(message)}
+                      className="flex h-8 w-8 items-center justify-center rounded-full opacity-75 hover:opacity-100 disabled:opacity-40"
+                    >
+                      <Share2 className="h-4 w-4" />
+                    </button>
+                    {own && (
+                      <button
+                        type="button"
+                        aria-label={t.famChatDelete}
+                        title={t.famChatDelete}
+                        disabled={workingMessageId !== null}
+                        onClick={() =>
+                          ask(
+                            t.famChatDeleteQ,
+                            t.famChatDeleteBody,
+                            t.famChatDelete,
+                            () => void deleteMessage(message),
+                          )
+                        }
+                        className="flex h-8 w-8 items-center justify-center rounded-full text-destructive opacity-75 hover:opacity-100 disabled:opacity-40"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
                 </article>
               );
             })
