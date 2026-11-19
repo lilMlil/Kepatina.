@@ -13,4 +13,12 @@ describe("Supported languages", () => {
       ),
     ).toBe(true);
   });
+
+  it.each(["lv", "en", "ru", "fr"] as const)(
+    "keeps the voice-message action separate from leaving a family in %s",
+    (lang) => {
+      expect(dicts[lang].famChatVoice).not.toBe(dicts[lang].famLeave);
+      expect(dicts[lang].famChatStop).not.toBe(dicts[lang].famLeave);
+    },
+  );
 });

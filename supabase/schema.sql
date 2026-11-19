@@ -220,8 +220,8 @@ BEGIN
   RETURN fid;
 END $$;
 
--- Internal: remove a person from their family. If they were the owner, the longest-standing member
--- becomes the owner; if nobody is left, the family is deleted.
+-- Internal: remove a person from their family. If they were the owner, transfer ownership before
+-- removing their membership so this also works when owner_id has a membership foreign key.
 CREATE OR REPLACE FUNCTION public._leave_family(uid uuid)
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE fid uuid; fam_owner uuid; next_owner uuid;
@@ -229,14 +229,21 @@ BEGIN
   SELECT family_id INTO fid FROM family_members WHERE user_id = uid;
   IF fid IS NULL THEN RETURN; END IF;
   SELECT owner_id INTO fam_owner FROM families WHERE id = fid FOR UPDATE;
-  DELETE FROM family_members WHERE user_id = uid;
   IF fam_owner = uid THEN
-    SELECT user_id INTO next_owner FROM family_members WHERE family_id = fid ORDER BY joined_at LIMIT 1;
+    SELECT user_id INTO next_owner
+    FROM family_members
+    WHERE family_id = fid AND user_id <> uid
+    ORDER BY joined_at, user_id
+    LIMIT 1;
     IF next_owner IS NULL THEN
+      -- Cascades remove the last membership and all family-owned data.
       DELETE FROM families WHERE id = fid;
     ELSE
       UPDATE families SET owner_id = next_owner WHERE id = fid;
+      DELETE FROM family_members WHERE family_id = fid AND user_id = uid;
     END IF;
+  ELSE
+    DELETE FROM family_members WHERE family_id = fid AND user_id = uid;
   END IF;
 END $$;
 REVOKE EXECUTE ON FUNCTION public._leave_family(uuid) FROM PUBLIC, anon, authenticated;

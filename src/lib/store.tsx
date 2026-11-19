@@ -559,7 +559,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!user || !family) return;
     const { error } = await supabase.rpc("leave_family");
     if (error) {
-      toast.error(dicts[settings.lang].famError);
+      console.error("[family] leave_family failed", {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+      });
+      toast.error(error.message || dicts[settings.lang].famError);
       return;
     }
     // If the creator leaves, the database hands the family over to the next member.
@@ -567,11 +573,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setFamily(null);
     toast.success(dicts[settings.lang].famLeft);
     // keep a personal cloud copy of what this phone has (the sync above also retries if this fails)
-    await supabase.from("user_state").upsert({
+    const { error: backupError } = await supabase.from("user_state").upsert({
       user_id: user.id,
       data: stateRef.current as never,
       updated_at: new Date().toISOString(),
     });
+    if (backupError) {
+      console.error("[family] personal backup after leaving failed", backupError);
+      toast.error(backupError.message || dicts[settings.lang].cloudSyncFail);
+    }
   }, [user, family, settings.lang]);
 
   const removeMember = useCallback(
@@ -583,8 +593,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         .eq("family_id", family.id)
         .eq("user_id", userId)
         .select("user_id");
-      if (error || !data || data.length === 0) toast.error(dicts[settings.lang].famError);
-      else toast.success(dicts[settings.lang].famMemberRemoved);
+      if (error) {
+        console.error("[family] remove member failed", error);
+        toast.error(error.message || dicts[settings.lang].famError);
+      } else if (!data || data.length === 0) {
+        console.error("[family] remove member returned no deleted row", { userId });
+        toast.error(dicts[settings.lang].famError);
+      } else toast.success(dicts[settings.lang].famMemberRemoved);
       await refreshFamily();
     },
     [family, refreshFamily, settings.lang],

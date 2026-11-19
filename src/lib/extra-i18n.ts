@@ -48,6 +48,8 @@ const lv = {
   famChatLoading: "Ielādē saraksti…",
   famChatFailed: "Neizdevās ielādēt saraksti. Pārbaudi savienojumu un mēģini vēlreiz.",
   famChatFileTooLarge: "Fails ir pārāk liels (maksimums 50 MB).",
+  famChatEmptyMedia: "Izvēlētais fails ir tukšs.",
+  famChatInvalidMedia: "Izvēlētais fails nav derīgs šim ziņas veidam.",
   famChatUnsupported: "Šajā ierīcē balss ieraksts nav pieejams.",
   famChatMediaFailed: "Neizdevās nosūtīt multivides failu.",
   famBody: "Dalies ar mīluļiem, atgādnēm un žurnālu ar ģimeni. Visi redz un labo vienus datus.",
@@ -140,6 +142,8 @@ const en: ExtraDict = {
   famChatLoading: "Loading chat…",
   famChatFailed: "Couldn't load the chat. Check your connection and try again.",
   famChatFileTooLarge: "File is too large (maximum 50 MB).",
+  famChatEmptyMedia: "The selected file is empty.",
+  famChatInvalidMedia: "The selected file type doesn't match this message.",
   famChatUnsupported: "Voice recording isn't available on this device.",
   famChatMediaFailed: "Couldn't send the media file.",
   famBody:
@@ -230,6 +234,8 @@ const ru: ExtraDict = {
   famChatLoading: "Загрузка чата…",
   famChatFailed: "Не удалось загрузить чат. Проверьте соединение и повторите попытку.",
   famChatFileTooLarge: "Файл слишком большой (максимум 50 МБ).",
+  famChatEmptyMedia: "Выбранный файл пуст.",
+  famChatInvalidMedia: "Тип выбранного файла не подходит для этого сообщения.",
   famChatUnsupported: "Запись голоса недоступна на этом устройстве.",
   famChatMediaFailed: "Не удалось отправить медиафайл.",
   famBody:
@@ -323,6 +329,8 @@ const fr: ExtraDict = {
   famChatLoading: "Chargement de la discussion…",
   famChatFailed: "Impossible de charger la discussion. Vérifiez la connexion et réessayez.",
   famChatFileTooLarge: "Fichier trop volumineux (maximum 50 Mo).",
+  famChatEmptyMedia: "Le fichier sélectionné est vide.",
+  famChatInvalidMedia: "Le type du fichier sélectionné ne correspond pas à ce message.",
   famChatUnsupported: "L’enregistrement vocal n’est pas disponible sur cet appareil.",
   famChatMediaFailed: "Impossible d’envoyer le fichier multimédia.",
   famBody:

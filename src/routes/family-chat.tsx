@@ -27,6 +27,19 @@ const MAX_MEDIA_BYTES = 50 * 1024 * 1024;
 const MAX_MESSAGE_LENGTH = 4000;
 const MAX_RECORDING_MS = 120_000;
 
+function errorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === "object" && "message" in error) {
+    const message = error.message;
+    if (typeof message === "string") return message;
+  }
+  return "";
+}
+
+function logChatError(action: string, error: unknown) {
+  console.error(`[family-chat] ${action} failed`, error);
+}
+
 function mediaExtension(type: string): string {
   const mime = type.split(";")[0] ?? "";
   return (
@@ -111,12 +124,16 @@ function FamilyChatPage() {
       ]);
       if (!active) return;
       if (messageRes.error) {
-        toast.error(t.famChatFailed);
+        logChatError("load messages", messageRes.error);
+        toast.error(messageRes.error.message || t.famChatFailed);
         setLoadFailed(true);
         setLoading(false);
         return;
       }
-      if (nicknameRes.error) toast.error(nicknameRes.error.message);
+      if (nicknameRes.error) {
+        logChatError("load nicknames", nicknameRes.error);
+        toast.error(nicknameRes.error.message || t.famChatFailed);
+      }
       const rows = [...(messageRes.data ?? [])].reverse() as FamilyMessage[];
       const withUrls = await Promise.all(
         rows.map(async (message) => {
@@ -125,6 +142,7 @@ function FamilyChatPage() {
             .from("family-chat")
             .createSignedUrl(message.media_path, 3600);
           if (error) {
+            logChatError("create media signed URL", error);
             toast.error(error.message);
             return message;
           }
@@ -170,49 +188,71 @@ function FamilyChatPage() {
     const text = content.trim();
     if (!text || text.length > MAX_MESSAGE_LENGTH) return;
     setSending(true);
-    const { error } = await supabase.from("family_messages").insert({
-      family_id: family.id,
-      sender_id: user.id,
-      kind: "text",
-      content: text,
-    });
-    setSending(false);
-    if (error) {
-      toast.error(error.message);
-      return;
+    try {
+      const { error } = await supabase.from("family_messages").insert({
+        family_id: family.id,
+        sender_id: user.id,
+        kind: "text",
+        content: text,
+      });
+      if (error) throw error;
+      setDraft("");
+    } catch (error) {
+      logChatError("send message", error);
+      toast.error(errorMessage(error) || t.famChatMediaFailed);
+    } finally {
+      setSending(false);
     }
-    setDraft("");
   }
 
   async function sendMedia(file: Blob, kind: Exclude<MessageKind, "text">, fileName?: string) {
     if (!family || !user || !online || sending) return;
-    if (!file.size || file.size > MAX_MEDIA_BYTES) {
+    if (!file.size) {
+      toast.error(t.famChatEmptyMedia);
+      return;
+    }
+    if (file.size > MAX_MEDIA_BYTES) {
       toast.error(t.famChatFileTooLarge);
+      return;
+    }
+    const mimeType = file.type.split(";")[0] ?? "";
+    if (!mimeType.startsWith(`${kind}/`)) {
+      toast.error(t.famChatInvalidMedia);
       return;
     }
     setSending(true);
     const name = fileName ?? `voice-${crypto.randomUUID()}.${mediaExtension(file.type)}`;
     const path = `${family.id}/${user.id}/${crypto.randomUUID()}-${name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-    const { error: uploadError } = await supabase.storage
-      .from("family-chat")
-      .upload(path, file, { contentType: file.type || "application/octet-stream", upsert: false });
-    if (uploadError) {
+    let uploaded = false;
+    try {
+      const { error: uploadError } = await supabase.storage
+        .from("family-chat")
+        .upload(path, file, { contentType: mimeType, upsert: false });
+      if (uploadError) throw uploadError;
+      uploaded = true;
+
+      const { error: insertError } = await supabase.from("family_messages").insert({
+        family_id: family.id,
+        sender_id: user.id,
+        kind,
+        media_path: path,
+      });
+      if (insertError) throw insertError;
+    } catch (error) {
+      logChatError(`send ${kind} media`, error);
+      if (uploaded) {
+        try {
+          const { error: removeError } = await supabase.storage.from("family-chat").remove([path]);
+          if (removeError) logChatError("remove orphaned media", removeError);
+        } catch (removeError) {
+          logChatError("remove orphaned media", removeError);
+        }
+      }
+      const detail = errorMessage(error);
+      toast.error(detail ? `${t.famChatMediaFailed} ${detail}` : t.famChatMediaFailed);
+    } finally {
       setSending(false);
-      toast.error(uploadError.message);
-      return;
     }
-    const { error: insertError } = await supabase.from("family_messages").insert({
-      family_id: family.id,
-      sender_id: user.id,
-      kind,
-      media_path: path,
-    });
-    if (insertError) {
-      const { error: removeError } = await supabase.storage.from("family-chat").remove([path]);
-      if (removeError) toast.error(removeError.message);
-      toast.error(insertError.message || t.famChatMediaFailed);
-    }
-    setSending(false);
   }
 
   async function startRecording() {
@@ -277,6 +317,7 @@ function FamilyChatPage() {
     ]),
   );
   const dateLocale = { lv: "lv-LV", en: "en", ru: "ru-RU", fr: "fr-FR" }[settings.lang];
+  const voiceActionLabel = recording ? t.famChatStop : t.famChatVoice;
 
   return (
     <>
@@ -387,8 +428,8 @@ function FamilyChatPage() {
           </button>
           <button
             type="button"
-            aria-label={recording ? t.famChatStop : t.famChatVoice}
-            title={recording ? t.famChatStop : t.famChatVoice}
+            aria-label={voiceActionLabel}
+            title={voiceActionLabel}
             disabled={!online || sending}
             onClick={() => {
               if (recording) recorderRef.current?.stop();
