@@ -14,4 +14,11 @@ describe("App routing", () => {
 
     expect(matches.at(-1)?.routeId).not.toBe(rootRouteId);
   });
+
+  it("matches the memory album and document library routes", () => {
+    const router = createRouter({ routeTree, context: { queryClient: new QueryClient() } });
+
+    expect(router.matchRoutes("/memories").at(-1)?.routeId).toBe("/memories");
+    expect(router.matchRoutes("/documents").at(-1)?.routeId).toBe("/documents");
+  });
 });

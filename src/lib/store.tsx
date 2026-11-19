@@ -29,6 +29,8 @@ import { applyStatusBarTheme, isNative, RECOVERY_EVENT, RECOVERY_KEY } from "./n
 import { accountCopy } from "./account-i18n";
 import type { MedCourse } from "./meds";
 import type { Expense } from "./expenses";
+import { deleteLocalFiles, type StoredFile } from "./media";
+import type { DocumentEntry, MemoryEntry } from "./memories";
 import {
   dueForNotification,
   nextDueDate,
@@ -55,6 +57,8 @@ interface SavedState {
   weights: WeightEntry[];
   vaccines: VaccineEntry[];
   visits: VisitEntry[];
+  memories: MemoryEntry[];
+  documents: DocumentEntry[];
   meds: MedCourse[];
   expenses: Expense[];
 }
@@ -77,6 +81,8 @@ const emptyState: SavedState = {
   weights: [],
   vaccines: [],
   visits: [],
+  memories: [],
+  documents: [],
   meds: [],
   expenses: [],
 };
@@ -96,6 +102,8 @@ function mergeStates(local: SavedState, remote: Partial<SavedState>): SavedState
     weights: mergeById(local.weights, remote.weights),
     vaccines: mergeById(local.vaccines, remote.vaccines),
     visits: mergeById(local.visits, remote.visits),
+    memories: mergeById(local.memories, remote.memories),
+    documents: mergeById(local.documents, remote.documents),
     meds: mergeById(local.meds, remote.meds),
     expenses: mergeById(local.expenses, remote.expenses),
     checks: { ...local.checks, ...(remote.checks ?? {}) },
@@ -143,7 +151,7 @@ interface Ctx extends SavedState {
   selectedPet: Pet | undefined;
   addPet: (name: string, species: Species, photo: string | null) => void;
   updatePet: (id: string, patch: Partial<Pet>) => void;
-  removePet: (id: string) => void;
+  removePet: (id: string) => Promise<void>;
   selectPet: (id: string) => void;
   addReminder: (r: Omit<Reminder, "id">) => void;
   removeReminder: (id: string) => void;
@@ -156,6 +164,10 @@ interface Ctx extends SavedState {
   removeVaccine: (id: string) => void;
   addVisit: (v: Omit<VisitEntry, "id">) => void;
   removeVisit: (id: string) => void;
+  addMemory: (memory: Omit<MemoryEntry, "id">) => void;
+  removeMemory: (id: string) => Promise<boolean>;
+  addDocument: (document: Omit<DocumentEntry, "id">) => void;
+  removeDocument: (id: string) => Promise<boolean>;
   addMed: (m: Omit<MedCourse, "id" | "done">) => void;
   removeMed: (id: string) => void;
   toggleDose: (id: string, key: string) => void;
@@ -318,8 +330,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  const hasContent = (d: Partial<SavedState> | undefined) =>
-    !!(d && (d.pets?.length || d.reminders?.length || d.owner?.name || d.owner?.photo));
+  const hasContent = (d: Partial<SavedState> | undefined): d is Partial<SavedState> =>
+    !!(
+      d &&
+      (d.pets?.length ||
+        d.reminders?.length ||
+        d.memories?.length ||
+        d.documents?.length ||
+        d.owner?.name ||
+        d.owner?.photo)
+    );
 
   // On sign-in (or reconnect): load family or personal cloud state, or upload local state if none exists
   useEffect(() => {
@@ -705,21 +725,76 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setState((s) => ({ ...s, pets: s.pets.map((p) => (p.id === id ? { ...p, ...patch } : p)) }));
   }, []);
 
-  const removePet = useCallback((id: string) => {
-    setState((s) => {
-      const next = removePetFrom(s.pets, s.reminders, id);
-      return {
+  const removePet = useCallback(
+    async (id: string) => {
+      const current = stateRef.current;
+      const files: StoredFile[] = [
+        ...current.memories
+          .filter((memory) => memory.petId === id)
+          .flatMap((memory) => memory.files),
+        ...current.documents
+          .filter((document) => document.petId === id)
+          .map((document) => document.file),
+      ];
+      try {
+        await deleteLocalFiles(files);
+      } catch {
+        toast.error(dicts[settings.lang].memoryDeleteError);
+        return;
+      }
+      setState((s) => {
+        const next = removePetFrom(s.pets, s.reminders, id);
+        return {
+          ...s,
+          ...next,
+          weights: removeHealthFor(s.weights, id),
+          vaccines: removeHealthFor(s.vaccines, id),
+          visits: removeHealthFor(s.visits, id),
+          memories: s.memories.filter((memory) => memory.petId !== id),
+          documents: s.documents.filter((document) => document.petId !== id),
+          meds: (s.meds ?? []).filter((m) => m.petId !== id),
+          expenses: (s.expenses ?? []).filter((e) => e.petId !== id),
+          selectedPetId: s.selectedPetId === id ? (next.pets[0]?.id ?? null) : s.selectedPetId,
+        };
+      });
+    },
+    [settings.lang],
+  );
+
+  const removeMemory = useCallback(
+    async (id: string) => {
+      const memory = stateRef.current.memories.find((entry) => entry.id === id);
+      if (!memory) return false;
+      try {
+        await deleteLocalFiles(memory.files);
+      } catch {
+        toast.error(dicts[settings.lang].memoryDeleteError);
+        return false;
+      }
+      setState((s) => ({ ...s, memories: s.memories.filter((entry) => entry.id !== id) }));
+      return true;
+    },
+    [settings.lang],
+  );
+
+  const removeDocument = useCallback(
+    async (id: string) => {
+      const document = stateRef.current.documents.find((entry) => entry.id === id);
+      if (!document) return false;
+      try {
+        await deleteLocalFiles([document.file]);
+      } catch {
+        toast.error(dicts[settings.lang].documentsDeleteError);
+        return false;
+      }
+      setState((s) => ({
         ...s,
-        ...next,
-        weights: removeHealthFor(s.weights, id),
-        vaccines: removeHealthFor(s.vaccines, id),
-        visits: removeHealthFor(s.visits, id),
-        meds: (s.meds ?? []).filter((m) => m.petId !== id),
-        expenses: (s.expenses ?? []).filter((e) => e.petId !== id),
-        selectedPetId: s.selectedPetId === id ? (next.pets[0]?.id ?? null) : s.selectedPetId,
-      };
-    });
-  }, []);
+        documents: s.documents.filter((entry) => entry.id !== id),
+      }));
+      return true;
+    },
+    [settings.lang],
+  );
 
   const value = useMemo<Ctx>(
     () => ({
@@ -786,9 +861,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addVaccine: (v) =>
         setState((s) => ({ ...s, vaccines: [...s.vaccines, { ...v, id: makeId() }] })),
       removeVaccine: (id) =>
-        setState((s) => ({ ...s, vaccines: s.vaccines.filter((v) => v.id !== id) })),
+        setState((s) => ({
+          ...s,
+          vaccines: s.vaccines.filter((v) => v.id !== id),
+          documents: s.documents.map((document) =>
+            document.recordKind === "vaccine" && document.recordId === id
+              ? { ...document, recordKind: undefined, recordId: undefined }
+              : document,
+          ),
+        })),
       addVisit: (v) => setState((s) => ({ ...s, visits: [...s.visits, { ...v, id: makeId() }] })),
-      removeVisit: (id) => setState((s) => ({ ...s, visits: s.visits.filter((v) => v.id !== id) })),
+      removeVisit: (id) =>
+        setState((s) => ({
+          ...s,
+          visits: s.visits.filter((v) => v.id !== id),
+          documents: s.documents.map((document) =>
+            document.recordKind === "visit" && document.recordId === id
+              ? { ...document, recordKind: undefined, recordId: undefined }
+              : document,
+          ),
+        })),
+      addMemory: (memory) =>
+        setState((s) => ({ ...s, memories: [...s.memories, { ...memory, id: makeId() }] })),
+      removeMemory,
+      addDocument: (document) =>
+        setState((s) => ({
+          ...s,
+          documents: [...s.documents, { ...document, id: makeId() }],
+        })),
+      removeDocument,
       addMed: (m) =>
         setState((s) => ({ ...s, meds: [...(s.meds ?? []), { ...m, id: makeId(), done: {} }] })),
       removeMed: (id) =>
@@ -846,6 +947,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addPet,
       updatePet,
       removePet,
+      removeMemory,
+      removeDocument,
       notif,
       enableNotifications,
       deleteAccount,

@@ -11,7 +11,16 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { CalendarCheck, FileDown, Scale, Stethoscope, Syringe, Trash2 } from "lucide-react";
+import {
+  CalendarCheck,
+  FileDown,
+  FileText,
+  ImagePlus,
+  Scale,
+  Stethoscope,
+  Syringe,
+  Trash2,
+} from "lucide-react";
 import {
   Avatar,
   Card,
@@ -71,6 +80,20 @@ function HealthPage() {
   return (
     <>
       <PageHeading back="/" eyebrow={t.hEyebrow} title={t.hTitle} subtitle={t.hSubtitle} />
+      <div className="grid grid-cols-2 gap-2">
+        <Link
+          to="/documents"
+          className="flex items-center justify-center gap-2 rounded-2xl border bg-card px-3 py-3 text-center text-sm font-bold text-primary"
+        >
+          <FileText className="h-4 w-4 shrink-0" /> {t.documentsTitle}
+        </Link>
+        <Link
+          to="/memories"
+          className="flex items-center justify-center gap-2 rounded-2xl border bg-card px-3 py-3 text-center text-sm font-bold text-primary"
+        >
+          <ImagePlus className="h-4 w-4 shrink-0" /> {t.memoryTitle}
+        </Link>
+      </div>
 
       {!pet ? (
         <Card className="space-y-3">
@@ -132,6 +155,40 @@ function HealthPage() {
         </>
       )}
     </>
+  );
+}
+
+function RecordDocuments({
+  petId,
+  recordKind,
+  recordId,
+}: {
+  petId: string;
+  recordKind: "visit" | "vaccine";
+  recordId: string;
+}) {
+  const { t, documents } = useApp();
+  const attached = documents.filter(
+    (document) =>
+      document.petId === petId &&
+      document.recordKind === recordKind &&
+      document.recordId === recordId,
+  );
+  if (!attached.length) return null;
+  return (
+    <div className="space-y-1 pt-2">
+      <p className="text-xs font-bold text-muted-foreground">{t.documentsAttachments}</p>
+      {attached.map((document) => (
+        <Link
+          key={document.id}
+          to="/documents"
+          className="flex items-center gap-2 rounded-xl bg-secondary px-3 py-2 text-sm font-bold text-primary"
+        >
+          <FileText className="h-4 w-4 shrink-0" />
+          <span className="min-w-0 break-all">{document.title}</span>
+        </Link>
+      ))}
+    </div>
   );
 }
 
@@ -478,6 +535,7 @@ function VaccinesTab({ pet }: { pet: Pet }) {
                 </p>
               )}
               {v.note && <p className="text-xs text-muted-foreground">{v.note}</p>}
+              <RecordDocuments petId={pet.id} recordKind="vaccine" recordId={v.id} />
             </Card>
           );
         })}
@@ -596,6 +654,7 @@ function VisitsTab({ pet }: { pet: Pet }) {
             {v.notes && (
               <p className="whitespace-pre-wrap text-sm text-muted-foreground">{v.notes}</p>
             )}
+            <RecordDocuments petId={pet.id} recordKind="visit" recordId={v.id} />
           </Card>
         ))}
       </section>

@@ -6,6 +6,8 @@ import {
   ClipboardCheck,
   HeartPulse,
   Info,
+  ImagePlus,
+  FileText,
   Plus,
   Stethoscope,
   Syringe,
@@ -50,6 +52,8 @@ function Home() {
     { to: "/passport", icon: BookUser, title: t.ppTitle, text: t.ppTool },
     { to: "/meds", icon: Pill, title: t.medsTitle, text: t.medsTool },
     { to: "/health", icon: HeartPulse, title: t.hTitle, text: t.hToolText },
+    { to: "/memories", icon: ImagePlus, title: t.memoryTitle, text: t.memoriesToolText },
+    { to: "/documents", icon: FileText, title: t.documentsTitle, text: t.documentsToolText },
   ] as const;
   const petReminders = [...reminders]
     .filter((r) => !selectedPetId || r.petId === selectedPetId)

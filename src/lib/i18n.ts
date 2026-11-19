@@ -4,6 +4,7 @@ import { extraDicts, type ExtraDict } from "./extra-i18n";
 import { passportDicts, type PassportDict } from "./passport-i18n";
 import { tagMedsDicts, type TagMedsDict } from "./tagmeds-i18n";
 import { newFeaturesDicts, type NewFeaturesDict } from "./new-features-i18n";
+import { memoriesDicts, type MemoriesDict } from "./memories-i18n";
 export { careGuides } from "./care-guides";
 
 const lv = {
@@ -178,7 +179,13 @@ const lv = {
 };
 
 export type BaseDict = typeof lv;
-export type Dict = BaseDict & HealthDict & ExtraDict & PassportDict & TagMedsDict & NewFeaturesDict;
+export type Dict = BaseDict &
+  HealthDict &
+  ExtraDict &
+  PassportDict &
+  TagMedsDict &
+  NewFeaturesDict &
+  MemoriesDict;
 
 const en: BaseDict = {
   appName: "Ķepatiņa",
@@ -703,6 +710,7 @@ export const dicts: Record<Lang, Dict> = {
     ...passportDicts.lv,
     ...tagMedsDicts.lv,
     ...newFeaturesDicts.lv,
+    ...memoriesDicts.lv,
   },
   en: {
     ...en,
@@ -711,6 +719,7 @@ export const dicts: Record<Lang, Dict> = {
     ...passportDicts.en,
     ...tagMedsDicts.en,
     ...newFeaturesDicts.en,
+    ...memoriesDicts.en,
   },
   ru: {
     ...ru,
@@ -719,6 +728,7 @@ export const dicts: Record<Lang, Dict> = {
     ...passportDicts.ru,
     ...tagMedsDicts.ru,
     ...newFeaturesDicts.ru,
+    ...memoriesDicts.ru,
   },
   fr: {
     ...fr,
@@ -727,5 +737,6 @@ export const dicts: Record<Lang, Dict> = {
     ...passportDicts.fr,
     ...tagMedsDicts.fr,
     ...newFeaturesDicts.fr,
+    ...memoriesDicts.fr,
   },
 };
