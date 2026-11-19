@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type TouchList } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
-import { ArrowUp, Mic, Paperclip, Square } from "lucide-react";
+import { ArrowUp, ChevronLeft, ChevronRight, Mic, Paperclip, Play, Square, X } from "lucide-react";
 import { Card, PageHeading } from "@/components/kit";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
@@ -60,6 +61,281 @@ function mediaExtension(type: string): string {
   );
 }
 
+interface ViewerItem {
+  id: string;
+  kind: "image" | "video";
+  url: string;
+}
+
+const VIEWER_LABELS = {
+  lv: { open: "Atvērt", close: "Aizvērt", prev: "Iepriekšējais", next: "Nākamais" },
+  en: { open: "Open", close: "Close", prev: "Previous", next: "Next" },
+  ru: { open: "Открыть", close: "Закрыть", prev: "Предыдущее", next: "Следующее" },
+  fr: { open: "Ouvrir", close: "Fermer", prev: "Précédent", next: "Suivant" },
+};
+
+const MAX_ZOOM = 5;
+
+function touchDistance(touches: TouchList) {
+  return Math.hypot(
+    touches[0].clientX - touches[1].clientX,
+    touches[0].clientY - touches[1].clientY,
+  );
+}
+
+/**
+ * Full-screen viewer for chat photos and videos.
+ * Photos: pinch or double-tap to zoom, drag when zoomed, swipe left/right for the previous/next
+ * item, swipe down to close. Videos: normal controls, bigger picture, buttons for previous/next.
+ */
+function MediaViewer({
+  items,
+  index,
+  onIndex,
+  onClose,
+  labels,
+}: {
+  items: ViewerItem[];
+  index: number;
+  onIndex: (index: number) => void;
+  onClose: () => void;
+  labels: { close: string; prev: string; next: string };
+}) {
+  const item = items[index];
+  const [scale, setScale] = useState(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [drag, setDrag] = useState({ x: 0, y: 0 });
+  const scaleRef = useRef(1);
+  const offsetRef = useRef({ x: 0, y: 0 });
+  const dragRef = useRef({ x: 0, y: 0 });
+  const gesture = useRef({
+    mode: "none" as "none" | "pinch" | "pan" | "swipe",
+    startDist: 0,
+    startScale: 1,
+    startX: 0,
+    startY: 0,
+    startOffX: 0,
+    startOffY: 0,
+    lastTap: 0,
+    moved: false,
+  });
+
+  function applyZoom(nextScale: number, nextOffset: { x: number; y: number }) {
+    scaleRef.current = nextScale;
+    offsetRef.current = nextOffset;
+    setScale(nextScale);
+    setOffset(nextOffset);
+  }
+
+  function applyDrag(next: { x: number; y: number }) {
+    dragRef.current = next;
+    setDrag(next);
+  }
+
+  function goTo(next: number) {
+    if (next >= 0 && next < items.length) onIndex(next);
+  }
+
+  function toggleZoom() {
+    if (scaleRef.current > 1) applyZoom(1, { x: 0, y: 0 });
+    else applyZoom(2.5, { x: 0, y: 0 });
+  }
+
+  // a new item always starts un-zoomed
+  useEffect(() => {
+    applyZoom(1, { x: 0, y: 0 });
+    applyDrag({ x: 0, y: 0 });
+    gesture.current.mode = "none";
+  }, [index]);
+
+  // keyboard (web) + lock the page behind the viewer
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+      else if (event.key === "ArrowLeft") goTo(index - 1);
+      else if (event.key === "ArrowRight") goTo(index + 1);
+    }
+    window.addEventListener("keydown", onKey);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = previousOverflow;
+    };
+  });
+
+  if (!item) return null;
+
+  const touchHandlers =
+    item.kind === "image"
+      ? {
+          onTouchStart: (event: React.TouchEvent) => {
+            const g = gesture.current;
+            if (event.touches.length === 2) {
+              g.mode = "pinch";
+              g.startDist = touchDistance(event.touches);
+              g.startScale = scaleRef.current;
+              g.moved = true;
+              return;
+            }
+            if (event.touches.length === 1) {
+              const touch = event.touches[0];
+              g.startX = touch.clientX;
+              g.startY = touch.clientY;
+              g.startOffX = offsetRef.current.x;
+              g.startOffY = offsetRef.current.y;
+              g.moved = false;
+              g.mode = scaleRef.current > 1 ? "pan" : "swipe";
+            }
+          },
+          onTouchMove: (event: React.TouchEvent) => {
+            const g = gesture.current;
+            if (g.mode === "pinch" && event.touches.length === 2) {
+              const next = Math.min(
+                MAX_ZOOM,
+                Math.max(1, (g.startScale * touchDistance(event.touches)) / g.startDist),
+              );
+              applyZoom(next, next === 1 ? { x: 0, y: 0 } : offsetRef.current);
+              return;
+            }
+            if (event.touches.length !== 1) return;
+            const touch = event.touches[0];
+            const dx = touch.clientX - g.startX;
+            const dy = touch.clientY - g.startY;
+            if (Math.abs(dx) + Math.abs(dy) > 8) g.moved = true;
+            if (g.mode === "pan") {
+              applyZoom(scaleRef.current, { x: g.startOffX + dx, y: g.startOffY + dy });
+            } else if (g.mode === "swipe") {
+              applyDrag({ x: dx, y: dy });
+            }
+          },
+          onTouchEnd: (event: React.TouchEvent) => {
+            const g = gesture.current;
+            if (event.touches.length > 0) {
+              // one finger left after a pinch: continue as a drag from here
+              if (g.mode === "pinch" && event.touches.length === 1) {
+                const touch = event.touches[0];
+                g.mode = scaleRef.current > 1 ? "pan" : "none";
+                g.startX = touch.clientX;
+                g.startY = touch.clientY;
+                g.startOffX = offsetRef.current.x;
+                g.startOffY = offsetRef.current.y;
+              }
+              return;
+            }
+            const mode = g.mode;
+            g.mode = "none";
+            const { x, y } = dragRef.current;
+            applyDrag({ x: 0, y: 0 });
+
+            if (!g.moved && mode !== "pinch") {
+              const now = Date.now();
+              if (now - g.lastTap < 300) {
+                g.lastTap = 0;
+                toggleZoom();
+              } else {
+                g.lastTap = now;
+              }
+              return;
+            }
+            if (mode === "swipe") {
+              if (Math.abs(x) > 70 && Math.abs(x) > Math.abs(y)) goTo(index + (x < 0 ? 1 : -1));
+              else if (y > 100 && y > Math.abs(x)) onClose();
+              return;
+            }
+            if (scaleRef.current <= 1.02) {
+              applyZoom(1, { x: 0, y: 0 });
+            } else {
+              const limitX = (window.innerWidth * (scaleRef.current - 1)) / 2;
+              const limitY = (window.innerHeight * (scaleRef.current - 1)) / 2;
+              applyZoom(scaleRef.current, {
+                x: Math.max(-limitX, Math.min(limitX, offsetRef.current.x)),
+                y: Math.max(-limitY, Math.min(limitY, offsetRef.current.y)),
+              });
+            }
+          },
+        }
+      : {};
+
+  const navButton =
+    "absolute top-1/2 -translate-y-1/2 rounded-full bg-black/45 p-2 text-white active:bg-black/70";
+
+  return createPortal(
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-[100] flex flex-col bg-black text-white"
+      style={{
+        paddingTop: "env(safe-area-inset-top, 0px)",
+        paddingBottom: "env(safe-area-inset-bottom, 0px)",
+      }}
+    >
+      <div className="flex items-center justify-between px-3 py-2">
+        <span className="text-sm opacity-80">
+          {index + 1} / {items.length}
+        </span>
+        <button
+          type="button"
+          aria-label={labels.close}
+          onClick={onClose}
+          className="rounded-full bg-white/15 p-2 active:bg-white/30"
+        >
+          <X className="h-6 w-6" />
+        </button>
+      </div>
+      <div
+        className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden"
+        style={item.kind === "image" ? { touchAction: "none" } : undefined}
+        {...touchHandlers}
+      >
+        {item.kind === "image" ? (
+          <img
+            key={item.id}
+            src={item.url}
+            alt=""
+            draggable={false}
+            onDoubleClick={toggleZoom}
+            className="max-h-full max-w-full select-none object-contain"
+            style={{
+              transform: `translate(${offset.x + (scale === 1 ? drag.x : 0)}px, ${offset.y + (scale === 1 ? drag.y : 0)}px) scale(${scale})`,
+            }}
+          />
+        ) : (
+          <video
+            key={item.id}
+            src={item.url}
+            controls
+            autoPlay
+            playsInline
+            className="max-h-full max-w-full bg-black"
+          />
+        )}
+        {index > 0 && (
+          <button
+            type="button"
+            aria-label={labels.prev}
+            onClick={() => goTo(index - 1)}
+            className={`${navButton} left-2`}
+          >
+            <ChevronLeft className="h-7 w-7" />
+          </button>
+        )}
+        {index < items.length - 1 && (
+          <button
+            type="button"
+            aria-label={labels.next}
+            onClick={() => goTo(index + 1)}
+            className={`${navButton} right-2`}
+          >
+            <ChevronRight className="h-7 w-7" />
+          </button>
+        )}
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 function FamilyChatPage() {
   const { t, family, user, online, settings } = useApp();
   const [messages, setMessages] = useState<FamilyMessage[]>([]);
@@ -69,6 +345,7 @@ function FamilyChatPage() {
   const [loadFailed, setLoadFailed] = useState(false);
   const [sending, setSending] = useState(false);
   const [recording, setRecording] = useState(false);
+  const [viewerId, setViewerId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -255,6 +532,33 @@ function FamilyChatPage() {
     }
   }
 
+  const viewerItems: ViewerItem[] = messages.flatMap((message) =>
+    (message.kind === "image" || message.kind === "video") && message.mediaUrl
+      ? [{ id: message.id, kind: message.kind, url: message.mediaUrl }]
+      : [],
+  );
+  const viewerIndex = viewerId === null ? -1 : viewerItems.findIndex((item) => item.id === viewerId);
+  const viewerOpen = viewerId !== null;
+
+  // The viewer takes one history entry, so the Android back button / browser back closes it
+  // instead of leaving the chat.
+  useEffect(() => {
+    if (!viewerOpen) return;
+    const onPop = () => setViewerId(null);
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [viewerOpen]);
+
+  function openViewer(id: string) {
+    window.history.pushState({ ...(window.history.state ?? {}), kepViewer: true }, "");
+    setViewerId(id);
+  }
+
+  function closeViewer() {
+    if (window.history.state?.kepViewer) window.history.back();
+    else setViewerId(null);
+  }
+
   async function startRecording() {
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
       toast.error(t.famChatUnsupported);
@@ -318,6 +622,7 @@ function FamilyChatPage() {
   );
   const dateLocale = { lv: "lv-LV", en: "en", ru: "ru-RU", fr: "fr-FR" }[settings.lang];
   const voiceActionLabel = recording ? t.famChatStop : t.famChatVoice;
+  const viewerLabels = VIEWER_LABELS[settings.lang];
 
   return (
     <>
@@ -354,20 +659,38 @@ function FamilyChatPage() {
                   {message.kind === "text" ? (
                     <p className="whitespace-pre-wrap break-words text-sm">{message.content}</p>
                   ) : message.kind === "image" && message.mediaUrl ? (
-                    <a href={message.mediaUrl} target="_blank" rel="noreferrer">
+                    <button
+                      type="button"
+                      aria-label={viewerLabels.open}
+                      onClick={() => openViewer(message.id)}
+                      className="block"
+                    >
                       <img
                         src={message.mediaUrl}
                         alt={t.photo}
                         className="max-h-64 max-w-full rounded-xl object-contain"
                       />
-                    </a>
+                    </button>
                   ) : message.kind === "video" && message.mediaUrl ? (
-                    <video
-                      controls
-                      preload="metadata"
-                      src={message.mediaUrl}
-                      className="max-h-64 max-w-full rounded-xl"
-                    />
+                    <button
+                      type="button"
+                      aria-label={viewerLabels.open}
+                      onClick={() => openViewer(message.id)}
+                      className="relative block overflow-hidden rounded-xl"
+                    >
+                      <video
+                        preload="metadata"
+                        muted
+                        playsInline
+                        src={`${message.mediaUrl}#t=0.1`}
+                        className="pointer-events-none max-h-64 max-w-full bg-black"
+                      />
+                      <span className="absolute inset-0 flex items-center justify-center">
+                        <span className="rounded-full bg-black/55 p-3 text-white">
+                          <Play className="h-7 w-7 fill-current" />
+                        </span>
+                      </span>
+                    </button>
                   ) : message.kind === "audio" && message.mediaUrl ? (
                     <audio
                       controls
@@ -458,6 +781,15 @@ function FamilyChatPage() {
           </button>
         </form>
       </Card>
+      {viewerIndex >= 0 && (
+        <MediaViewer
+          items={viewerItems}
+          index={viewerIndex}
+          onIndex={(next) => setViewerId(viewerItems[next]?.id ?? null)}
+          onClose={closeViewer}
+          labels={viewerLabels}
+        />
+      )}
     </>
   );
 }
