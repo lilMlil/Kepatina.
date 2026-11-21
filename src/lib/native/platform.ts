@@ -10,6 +10,19 @@ type RouterLike = {
 };
 let routerRef: RouterLike | null = null;
 
+/**
+ * Screens that sit on top of a page (photo viewer, bottom sheets) register here so the
+ * Android back button closes them first instead of leaving the page.
+ */
+const backHandlers: (() => boolean)[] = [];
+export function pushBackHandler(handler: () => boolean): () => void {
+  backHandlers.push(handler);
+  return () => {
+    const index = backHandlers.lastIndexOf(handler);
+    if (index >= 0) backHandlers.splice(index, 1);
+  };
+}
+
 /** Set when a password-reset link is opened; the profile page then asks for a new password. */
 export const RECOVERY_KEY = "kepatina/recovery";
 export const RECOVERY_EVENT = "kepatina:recovery";
@@ -74,6 +87,8 @@ export function setupNative(router: RouterLike) {
       const launch = await App.getLaunchUrl();
       if (launch?.url) void handleAuthLink(launch.url);
       await App.addListener("backButton", () => {
+        const top = backHandlers[backHandlers.length - 1];
+        if (top && top()) return;
         if (router.state.location.pathname !== "/") router.history.back();
         else void App.exitApp();
       });
