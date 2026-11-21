@@ -178,6 +178,8 @@ interface Ctx extends SavedState {
   addVisit: (v: Omit<VisitEntry, "id">) => void;
   removeVisit: (id: string) => void;
   addMemory: (memory: Omit<MemoryEntry, "id">) => void;
+  /** Changes the memories in one step (edit an entry, move photos between albums, ...). */
+  updateMemories: (update: (memories: MemoryEntry[]) => MemoryEntry[]) => void;
   removeMemory: (id: string) => Promise<boolean>;
   addDocument: (document: Omit<DocumentEntry, "id">) => void;
   removeDocument: (id: string) => Promise<boolean>;
@@ -1078,6 +1080,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         })),
       addMemory: (memory) =>
         setState((s) => ({ ...s, memories: [...s.memories, { ...memory, id: makeId() }] })),
+      updateMemories: (update) => setState((s) => ({ ...s, memories: update(s.memories) })),
       removeMemory,
       addDocument: (document) =>
         setState((s) => ({
