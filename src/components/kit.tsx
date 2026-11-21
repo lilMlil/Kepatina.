@@ -239,7 +239,7 @@ export function ConfirmDialog({
   const btn = "min-h-11 min-w-0 px-3 py-2 text-center text-sm leading-tight";
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 p-5"
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-foreground/40 p-5"
       onClick={onClose}
     >
       <div
