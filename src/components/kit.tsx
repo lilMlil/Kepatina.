@@ -1,6 +1,6 @@
 import { useId, useRef, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { Camera, ChevronLeft, PawPrint } from "lucide-react";
+import { Camera, ChevronLeft, PawPrint, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fileToAvatar } from "@/lib/image";
 import { SPECIES, speciesLabel, useApp } from "@/lib/store";
@@ -137,10 +137,13 @@ export function Avatar({
   src,
   size = 44,
   className,
+  fallback = "pet",
 }: {
   src?: string | null | undefined;
   size?: number;
   className?: string;
+  /** Icon shown when there is no photo: a paw for pets, a person for the owner. */
+  fallback?: "pet" | "person";
 }) {
   return (
     <div
@@ -153,7 +156,11 @@ export function Avatar({
       {src ? (
         <img src={src} alt="" className="h-full w-full object-cover" />
       ) : (
-        <PawPrint aria-hidden="true" style={{ width: size * 0.45, height: size * 0.45 }} />
+        fallback === "person" ? (
+          <User aria-hidden="true" style={{ width: size * 0.45, height: size * 0.45 }} />
+        ) : (
+          <PawPrint aria-hidden="true" style={{ width: size * 0.45, height: size * 0.45 }} />
+        )
       )}
     </div>
   );
@@ -163,10 +170,12 @@ export function AvatarPicker({
   value,
   onChange,
   size = 96,
+  fallback = "pet",
 }: {
   value: string | null;
   onChange: (v: string | null) => void;
   size?: number;
+  fallback?: "pet" | "person";
 }) {
   const { t } = useApp();
   const ref = useRef<HTMLInputElement>(null);
@@ -178,7 +187,7 @@ export function AvatarPicker({
         className="relative"
         aria-label={value ? t.changePhoto : t.addPhoto}
       >
-        <Avatar src={value} size={size} className="ring-4 ring-peach-soft" />
+        <Avatar src={value} size={size} fallback={fallback} className="ring-4 ring-peach-soft" />
         <span className="absolute -bottom-1 -right-1 flex h-9 w-9 items-center justify-center rounded-full bg-accent text-accent-foreground shadow-soft">
           <Camera className="h-4 w-4" aria-hidden="true" />
         </span>
