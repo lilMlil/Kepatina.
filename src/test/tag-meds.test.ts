@@ -4,6 +4,7 @@ import {
   courseDay,
   doseKey,
   isFinished,
+  nextDoses,
   normalizeTimes,
   progress,
   type MedCourse,
@@ -48,5 +49,35 @@ describe("medication courses", () => {
   });
   it("sorts and de-duplicates dose times", () => {
     expect(normalizeTimes(["20:00", "08:00", "08:00", ""])).toEqual(["08:00", "20:00"]);
+  });
+});
+
+describe("medication doses on the home reminders", () => {
+  const keys = (cs: MedCourse[], today: string, pet?: string) =>
+    nextDoses(cs, today, pet).map((d) => `${d.name}|${d.key}`);
+
+  it("shows the first dose that is not done yet, then moves on after it is ticked", () => {
+    expect(keys([course], "2026-11-01")).toEqual([`A|${doseKey("2026-11-01", "08:00")}`]);
+    const first = { ...course, done: { [doseKey("2026-11-01", "08:00")]: true } };
+    expect(keys([first], "2026-11-01")).toEqual([`A|${doseKey("2026-11-01", "20:00")}`]);
+  });
+  it("keeps a missed dose visible until it is ticked", () => {
+    expect(keys([course], "2026-11-02")).toEqual([`A|${doseKey("2026-11-01", "08:00")}`]);
+  });
+  it("hides finished courses and fully done courses", () => {
+    expect(keys([course], "2026-11-04")).toEqual([]);
+    const all: Record<string, boolean> = {};
+    for (const d of ["2026-11-01", "2026-11-02", "2026-11-03"])
+      for (const t of ["08:00", "20:00"]) all[doseKey(d, t)] = true;
+    expect(keys([{ ...course, done: all }], "2026-11-02")).toEqual([]);
+  });
+  it("filters by pet and sorts by time, with a real local Date", () => {
+    const other: MedCourse = { ...course, id: "d", petId: "q", name: "B", startDate: "2026-11-02" };
+    expect(keys([course, other], "2026-11-01", "q")).toEqual([
+      `B|${doseKey("2026-11-02", "08:00")}`,
+    ]);
+    expect(nextDoses([other, course], "2026-11-01").map((d) => d.name)).toEqual(["A", "B"]);
+    const at = nextDoses([course], "2026-11-01")[0]!.at;
+    expect([at.getHours(), at.getMinutes()]).toEqual([8, 0]);
   });
 });
