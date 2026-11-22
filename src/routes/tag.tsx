@@ -4,7 +4,15 @@ import { createPortal } from "react-dom";
 import QRCode from "qrcode";
 import { toast } from "sonner";
 import { Copy, ExternalLink, Printer } from "lucide-react";
-import { Avatar, Card, GhostButton, PageHeading, PrimaryButton, TextField } from "@/components/kit";
+import {
+  Avatar,
+  Card,
+  GhostButton,
+  NeedPetHint,
+  PageHeading,
+  PrimaryButton,
+  TextField,
+} from "@/components/kit";
 import { speciesLabel, useApp } from "@/lib/store";
 import { encodeTag } from "@/lib/lost-tag";
 import { tagMedsDicts } from "@/lib/tagmeds-i18n";
@@ -63,15 +71,7 @@ function TagPage() {
     return (
       <>
         <PageHeading title={t.tagTitle} back="/" />
-        <Card className="space-y-3">
-          <p className="text-sm font-semibold text-warn">{t.hNeedPet}</p>
-          <Link
-            to="/pets"
-            className="inline-flex items-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground"
-          >
-            {t.addPet}
-          </Link>
-        </Card>
+        <NeedPetHint />
       </>
     );
   }
