@@ -1,249 +1,115 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
-import { toast } from "sonner";
-import { Check, Plus, Trash2, X } from "lucide-react";
-import {
-  Avatar,
-  Card,
-  GhostButton,
-  PageHeading,
-  PrimaryButton,
-  TextField,
-  useConfirm,
-} from "@/components/kit";
-import { useApp } from "@/lib/store";
-import {
-  courseDay,
-  doseKey,
-  isFinished,
-  localDate,
-  normalizeTimes,
-  progress,
-  type MedCourse,
-} from "@/lib/meds";
-import { cn } from "@/lib/utils";
-import { DateField, TimeField } from "@/components/pickers";
-
-export const Route = createFileRoute("/meds")({
-  component: MedsPage,
-});
-
-function MedsPage() {
-  const { t, pets, meds = [], selectedPet } = useApp();
-  const [adding, setAdding] = useState(false);
-  const today = localDate();
-  const active = meds.filter((m) => !isFinished(m, today));
-  const finished = meds.filter((m) => isFinished(m, today));
-
-  return (
-    <>
-      <PageHeading title={t.medsTitle} subtitle={t.medsTool} back="/" />
-      {!pets.length ? (
-        <Card className="space-y-3">
-          <p className="text-sm font-semibold text-warn">{t.hNeedPet}</p>
-          <Link
-            to="/pets"
-            className="inline-flex items-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground"
-          >
-            {t.addPet}
-          </Link>
-        </Card>
-      ) : adding ? (
-        <NewCourse petId={selectedPet?.id ?? pets[0]?.id ?? ""} onClose={() => setAdding(false)} />
-      ) : (
-        <PrimaryButton className="w-full" onClick={() => setAdding(true)}>
-          <Plus className="h-4 w-4" /> {t.medsNew}
-        </PrimaryButton>
-      )}
-      <h2 className="text-xl font-semibold">{t.medsToday}</h2>
-      {active.length ? (
-        active.map((m) => <CourseCard key={m.id} c={m} today={today} />)
-      ) : (
-        <p className="text-sm text-muted-foreground">{t.medsEmpty}</p>
-      )}
-      {finished.length > 0 && (
-        <>
-          <h2 className="text-xl font-semibold">{t.medsFinished}</h2>
-          {finished.map((m) => (
-            <CourseCard key={m.id} c={m} today={today} />
-          ))}
-        </>
-      )}
-    </>
-  );
+export interface MedCourse {
+  id: string;
+  petId: string;
+  name: string;
+  dose: string;
+  /** Daily times, "HH:MM" */
+  times: string[];
+  /** First day, "YYYY-MM-DD" */
+  startDate: string;
+  /** Course length in days */
+  days: number;
+  /** Doses marked done, key `${date}|${time}` */
+  done: Record<string, boolean>;
 }
 
-function CourseCard({ c, today }: { c: MedCourse; today: string }) {
-  const { t, pets, toggleDose, removeMed } = useApp();
-  const { ask, dialog } = useConfirm();
-  const pet = pets.find((p) => p.id === c.petId);
-  const day = courseDay(c, today);
-  const pr = progress(c);
-  return (
-    <Card className="space-y-3">
-      <div className="flex items-start gap-3">
-        <Avatar src={pet?.photo} size={40} />
-        <div className="min-w-0 flex-1">
-          <p className="font-bold">
-            {c.name}
-            {c.dose && <span className="font-semibold text-muted-foreground"> · {c.dose}</span>}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {pet?.name} · {day ? `${t.medsDay} ${day} ${t.medsOf} ${c.days}` : `${c.days} d`} ·{" "}
-            {pr.done}/{pr.total}
-          </p>
-        </div>
-        <button
-          aria-label={t.medsDelete}
-          onClick={() => ask(t.medsDelete, t.medsDeleteQ, t.medsDelete, () => removeMed(c.id))}
-          className="text-muted-foreground"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
-      </div>
-      <div className="h-2 overflow-hidden rounded-full bg-secondary">
-        <div
-          className="h-full bg-primary transition-all"
-          style={{ width: `${(pr.done / pr.total) * 100}%` }}
-        />
-      </div>
-      {day ? (
-        <div className="flex flex-wrap gap-2">
-          {c.times.map((time) => {
-            const k = doseKey(today, time);
-            const done = !!c.done[k];
-            return (
-              <button
-                key={time}
-                onClick={() => toggleDose(c.id, k)}
-                aria-pressed={done}
-                className={cn(
-                  "flex items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-bold",
-                  done ? "border-safe bg-safe text-primary-foreground" : "bg-card text-foreground",
-                )}
-              >
-                {done ? (
-                  <Check className="h-4 w-4" />
-                ) : (
-                  <span className="h-4 w-4 rounded-full border-2" />
-                )}
-                {time}
-                {done && ` · ${t.medsDone}`}
-              </button>
-            );
-          })}
-        </div>
-      ) : null}
-      {dialog}
-    </Card>
-  );
+export const doseKey = (date: string, time: string) => `${date}|${time}`;
+
+export function localDate(d: Date = new Date()): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
-function NewCourse({ petId: initialPet, onClose }: { petId: string; onClose: () => void }) {
-  const { t, pets, addMed } = useApp();
-  const [petId, setPetId] = useState(initialPet);
-  const [name, setName] = useState("");
-  const [dose, setDose] = useState("");
-  const [times, setTimes] = useState<string[]>(["08:00", "20:00"]);
-  const [start, setStart] = useState(localDate());
-  const [days, setDays] = useState("7");
+function addDays(date: string, n: number): string {
+  const [y = 0, m = 1, d = 1] = date.split("-").map(Number);
+  return localDate(new Date(y, m - 1, d + n));
+}
 
-  const save = (e: React.FormEvent) => {
-    e.preventDefault();
-    const tm = normalizeTimes(times);
-    const n = Math.min(365, Math.max(1, parseInt(days, 10) || 1));
-    if (!name.trim() || !tm.length) return;
-    addMed({ petId, name: name.trim(), dose: dose.trim(), times: tm, startDate: start, days: n });
-    toast.success(t.medsSaved);
-    onClose();
-  };
+export function courseEnd(c: MedCourse): string {
+  return addDays(c.startDate, Math.max(1, c.days) - 1);
+}
 
-  return (
-    <Card>
-      <form onSubmit={save} className="space-y-3">
-        {pets.length > 1 && (
-          <div className="flex flex-wrap gap-2">
-            {pets.map((p) => (
-              <button
-                type="button"
-                key={p.id}
-                onClick={() => setPetId(p.id)}
-                className={cn(
-                  "rounded-full border px-3 py-1.5 text-sm font-bold",
-                  p.id === petId ? "border-primary bg-secondary text-primary" : "bg-card",
-                )}
-              >
-                {p.name}
-              </button>
-            ))}
-          </div>
-        )}
-        <TextField
-          label={t.medsName}
-          placeholder={t.medsNamePh}
-          required
-          maxLength={60}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <TextField
-          label={t.medsDose}
-          placeholder={t.medsDosePh}
-          maxLength={40}
-          value={dose}
-          onChange={(e) => setDose(e.target.value)}
-        />
-        <div className="space-y-2">
-          <p className="text-sm font-bold">{t.medsTimes}</p>
-          {times.map((tm, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <div className="flex-1">
-                <TimeField
-                  ariaLabel={t.medsTimes}
-                  value={tm}
-                  onChange={(v) => setTimes(times.map((x, j) => (j === i ? v : x)))}
-                />
-              </div>
-              {times.length > 1 && (
-                <button
-                  type="button"
-                  aria-label="×"
-                  onClick={() => setTimes(times.filter((_, j) => j !== i))}
-                  className="text-muted-foreground"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              )}
-            </div>
-          ))}
-          {times.length < 8 && (
-            <button
-              type="button"
-              onClick={() => setTimes([...times, "12:00"])}
-              className="text-sm font-bold text-primary"
-            >
-              + {t.medsAddTime}
-            </button>
-          )}
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <DateField label={t.medsStart} value={start} onChange={setStart} />
-          <TextField
-            label={t.medsDays}
-            inputMode="numeric"
-            maxLength={3}
-            required
-            value={days}
-            onChange={(e) => setDays(e.target.value.replace(/\D/g, ""))}
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <GhostButton type="button" onClick={onClose}>
-            ✕
-          </GhostButton>
-          <PrimaryButton type="submit">{t.medsSave}</PrimaryButton>
-        </div>
-      </form>
-    </Card>
-  );
+/** Day number (1-based) of `date` within the course, or null if outside it. */
+export function courseDay(c: MedCourse, date: string): number | null {
+  if (date < c.startDate || date > courseEnd(c)) return null;
+  let n = 1;
+  let cur = c.startDate;
+  while (cur < date) {
+    cur = addDays(cur, 1);
+    n++;
+  }
+  return n;
+}
+
+export function normalizeTimes(times: string[]): string[] {
+  return [...new Set(times.filter((t) => /^\d{2}:\d{2}$/.test(t)))].sort();
+}
+
+export function progress(c: MedCourse): { done: number; total: number } {
+  const total = Math.max(1, c.days) * c.times.length;
+  let done = 0;
+  for (let i = 0; i < Math.max(1, c.days); i++) {
+    const d = addDays(c.startDate, i);
+    for (const t of c.times) if (c.done[doseKey(d, t)]) done++;
+  }
+  return { done, total };
+}
+
+export function isFinished(c: MedCourse, today = localDate()): boolean {
+  return today > courseEnd(c);
+}
+
+/** One upcoming (or overdue) dose, shaped like a reminder for the home screen. */
+export interface CourseDose {
+  courseId: string;
+  petId: string;
+  name: string;
+  dose: string;
+  /** Same key as `doseKey`, unique within the course */
+  key: string;
+  at: Date;
+}
+
+function doseDate(date: string, time: string): Date {
+  const [y = 0, m = 1, d = 1] = date.split("-").map(Number);
+  const [h = 0, min = 0] = time.split(":").map(Number);
+  return new Date(y, m - 1, d, h, min, 0, 0);
+}
+
+/** Earliest dose of the course that is not marked done yet, or null when all are done. */
+function firstUndoneDose(c: MedCourse): { date: string; time: string } | null {
+  const days = Math.max(1, c.days);
+  const times = [...c.times].sort();
+  for (let i = 0; i < days; i++) {
+    const date = addDays(c.startDate, i);
+    for (const time of times) if (!c.done[doseKey(date, time)]) return { date, time };
+  }
+  return null;
+}
+
+/**
+ * For every unfinished course: its earliest dose that is not done yet (overdue ones included),
+ * sorted by time. Optionally only for one pet. Works like the reminders list: a done dose
+ * moves the card on to the next one.
+ */
+export function nextDoses(
+  courses: MedCourse[],
+  today = localDate(),
+  petId?: string | null,
+): CourseDose[] {
+  const out: CourseDose[] = [];
+  for (const c of courses) {
+    if (isFinished(c, today) || (petId && c.petId !== petId)) continue;
+    const next = firstUndoneDose(c);
+    if (!next) continue;
+    out.push({
+      courseId: c.id,
+      petId: c.petId,
+      name: c.name,
+      dose: c.dose,
+      key: doseKey(next.date, next.time),
+      at: doseDate(next.date, next.time),
+    });
+  }
+  return out.sort((a, b) => a.at.getTime() - b.at.getTime());
 }
