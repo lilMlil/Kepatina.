@@ -151,7 +151,11 @@ export function NeedPetHint() {
   const { t } = useApp();
   return (
     <Card className="space-y-3">
-      <p className="text-sm font-semibold text-warn" style={{ color: "var(--warn)" }}>
+      {/* The fallback keeps the hint yellow even where the theme variable is not set. */}
+      <p
+        className="text-sm font-semibold text-warn"
+        style={{ color: "var(--warn, #f0b35a)" }}
+      >
         {t.hNeedPet}
       </p>
       <Link
