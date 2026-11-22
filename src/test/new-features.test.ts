@@ -7,7 +7,9 @@ describe("Expenses", () => {
   it("stores exact cents and accepts comma decimals", () => {
     expect(parseExpenseAmount("12,50")).toBe(1250);
     expect(parseExpenseAmount("0.01")).toBe(1);
-    expect(parseExpenseAmount("0")).toBeNull();
+    expect(parseExpenseAmount("0")).toBe(0);
+    expect(parseExpenseAmount("")).toBeNull();
+    expect(parseExpenseAmount("-5")).toBeNull();
     expect(parseExpenseAmount("1.234")).toBeNull();
   });
   it("adds without floating point errors", () => {
