@@ -11,7 +11,8 @@ export interface Expense {
 export function parseExpenseAmount(value: string): number | null {
   if (!/^\d+([.,]\d{1,2})?$/.test(value.trim())) return null;
   const cents = Math.round(Number(value.replace(",", ".")) * 100);
-  return Number.isSafeInteger(cents) && cents > 0 ? cents : null;
+  // Zero is allowed: a note can be kept without a cost (e.g. a free check-up).
+  return Number.isSafeInteger(cents) && cents >= 0 ? cents : null;
 }
 export function expenseTotal(rows: Expense[]): number {
   return rows.reduce((sum, row) => sum + row.amountCents, 0);
