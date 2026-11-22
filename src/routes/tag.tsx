@@ -8,7 +8,8 @@ import { Avatar, Card, GhostButton, PageHeading, PrimaryButton, TextField } from
 import { speciesLabel, useApp } from "@/lib/store";
 import { encodeTag } from "@/lib/lost-tag";
 import { tagMedsDicts } from "@/lib/tagmeds-i18n";
-import { printReport } from "@/lib/print";
+import { assemblePdf, deliverPdf, printReport, safeFileName } from "@/lib/print";
+import { isNative } from "@/lib/native/platform";
 
 const WEB_URL = (import.meta.env["VITE_PUBLIC_WEB_URL"] as string | undefined)?.replace(/\/+$/, "");
 
@@ -72,6 +73,19 @@ function TagPage() {
     );
   }
 
+  // Browser: the system print dialog. The Android/iOS app has no print dialog, so there the
+  // same four-tag sheet is saved as a PDF and handed to the share sheet instead.
+  const printTags = async () => {
+    const title = `${pet.name} — ${t.tagTitle}`;
+    if (!isNative()) return printReport(title, () => toast.error(t.hPrintFail));
+    try {
+      const pdf = await createTagSheetPdf(qr, pet.name, t.tagScanMe, owner.phone, title);
+      await deliverPdf(pdf, safeFileName(`${pet.name}-${t.tagTitle}`, "pdf"), title);
+    } catch {
+      toast.error(t.hPrintFail);
+    }
+  };
+
   return (
     <>
       <PageHeading title={t.tagTitle} subtitle={t.tagSubtitle} back="/" />
@@ -132,9 +146,7 @@ function TagPage() {
         <PrimaryButton
           className="col-span-2"
           disabled={!qr}
-          onClick={() =>
-            printReport(`${pet.name} — ${t.tagTitle}`, () => toast.error(t.hPrintFail))
-          }
+          onClick={() => void printTags()}
         >
           <Printer className="h-4 w-4" /> {t.tagPrint}
         </PrimaryButton>
@@ -159,6 +171,81 @@ function TagPage() {
       {qr && <TagPrint qr={qr} name={pet.name} phone={owner.phone} label={t.tagScanMe} />}
     </>
   );
+}
+
+const SHEET_FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif';
+const SHEET_SCALE = 2; // canvas pixels per PDF point, as in print.ts
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("QR image failed to load"));
+    img.src = src;
+  });
+}
+
+/** The four tags of the print sheet, drawn onto one A4 page and packed into a PDF. */
+async function createTagSheetPdf(
+  qr: string,
+  name: string,
+  label: string,
+  phone: string | undefined,
+  title: string,
+): Promise<Blob> {
+  const W = 595; // A4 in PDF points
+  const H = 842;
+  const tagW = 110;
+  const tagH = 160;
+  const gap = 14;
+  const qrSize = 92;
+  const top = 60;
+  const left = (W - (4 * tagW + 3 * gap)) / 2;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = W * SHEET_SCALE;
+  canvas.height = H * SHEET_SCALE;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas is not available");
+  ctx.scale(SHEET_SCALE, SHEET_SCALE);
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = "#111";
+  ctx.strokeStyle = "#999";
+  ctx.textAlign = "center";
+
+  const qrImage = await loadImage(qr);
+  for (let i = 0; i < 4; i++) {
+    const x = left + i * (tagW + gap);
+    const cx = x + tagW / 2;
+    ctx.save();
+    ctx.setLineDash([4, 3]);
+    ctx.strokeRect(x, top, tagW, tagH);
+    ctx.restore();
+    ctx.font = `600 8px ${SHEET_FONT}`;
+    ctx.fillText(label, cx, top + 14, tagW - 10);
+    ctx.drawImage(qrImage, cx - qrSize / 2, top + 22, qrSize, qrSize);
+    ctx.font = `700 12px ${SHEET_FONT}`;
+    ctx.fillText(name, cx, top + 22 + qrSize + 18, tagW - 10);
+    if (phone) {
+      ctx.font = `400 9px ${SHEET_FONT}`;
+      ctx.fillText(phone, cx, top + 22 + qrSize + 34, tagW - 10);
+    }
+  }
+
+  const blob = await new Promise<Blob>((resolve, reject) =>
+    canvas.toBlob(
+      (b) => (b ? resolve(b) : reject(new Error("Could not render the sheet."))),
+      "image/jpeg",
+      0.92,
+    ),
+  );
+  const jpeg = new Uint8Array(await blob.arrayBuffer());
+  const width = canvas.width;
+  const height = canvas.height;
+  canvas.width = 0; // free the canvas memory right away; matters on phones
+  canvas.height = 0;
+  return assemblePdf([{ jpeg, width, height }], title);
 }
 
 const PRINT_CSS = `
