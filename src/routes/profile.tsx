@@ -44,7 +44,12 @@ function ProfilePage() {
     <>
       <PageHeading title={t.profileTitle} />
       <Card className="space-y-4">
-        <AvatarPicker value={owner.photo} onChange={(photo) => setOwner({ photo })} size={104} />
+        <AvatarPicker
+          value={owner.photo}
+          onChange={(photo) => setOwner({ photo })}
+          size={104}
+          fallback="person"
+        />
         <TextField
           label={t.yourName}
           placeholder={t.yourNamePh}
