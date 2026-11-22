@@ -9,8 +9,11 @@ import {
   PawPrint,
   Pencil,
   Phone,
+  Pill,
   Printer,
   Share2,
+  Stethoscope,
+  X,
 } from "lucide-react";
 import { Avatar, Card, GhostButton, PageHeading, PrimaryButton } from "@/components/kit";
 import { speciesLabel, useApp } from "@/lib/store";
@@ -29,6 +32,7 @@ import {
   telHref,
   type PassportMissing,
 } from "@/lib/passport";
+import { courseDay, isFinished, localDate } from "@/lib/meds";
 import { printReport } from "@/lib/print";
 import { shareText } from "@/lib/native/platform";
 import type { Pet } from "@/lib/reminders";
@@ -40,7 +44,7 @@ export const Route = createFileRoute("/passport")({
 
 /** Everything the screen, the print layout and the share text show, computed once. */
 function usePassport(pet: Pet) {
-  const { t, owner, weights, vaccines, visits, settings } = useApp();
+  const { t, owner, weights, vaccines, visits, meds = [], settings } = useApp();
   const locale = settings.lang;
   const lastW = latestWeight(weights, pet.id);
   const weightNow = lastW
@@ -75,21 +79,54 @@ function usePassport(pet: Pet) {
     `${formatDate(v.date, locale)} — ${v.name}${v.nextDue ? ` → ${t.hNextOn.toLowerCase()} ${formatDate(v.nextDue, locale)}` : ""}`;
   const visitLine = (v: (typeof vis)[number]) =>
     `${formatDate(v.date, locale)} — ${v.reason}${v.clinic ? ` (${v.clinic})` : ""}`;
+  // Courses that are running today (or start later), with the day number when it is known.
+  const today = localDate();
+  const medLines = meds
+    .filter((m) => m.petId === pet.id && !isFinished(m, today))
+    .map((m) => {
+      const day = courseDay(m, today);
+      return [
+        m.name,
+        m.dose,
+        m.times.join(", "),
+        day ? `${t.medsDay} ${day} ${t.medsOf} ${m.days}` : "",
+      ]
+        .filter(Boolean)
+        .join(" · ");
+    });
   const text = passportText(
     `${t.ppTitle}: ${pet.name}`,
     [...identity, ...contacts, [t.medNotes, pet.notes ?? ""]],
     [
+      { title: t.ppMeds, lines: medLines },
       { title: t.hTabVaccines, lines: vacc.slice(0, 12).map(vaccLine) },
       { title: t.hTabVisits, lines: vis.slice(0, 8).map(visitLine) },
     ],
     `${t.appName} · ${t.ppUpdated}: ${formatDate(todayISO(), locale)}`,
   );
-  return { t, owner, locale, identity, contacts, vacc, vis, text, vaccLine, visitLine };
+  return { t, owner, locale, identity, contacts, vacc, vis, medLines, text, vaccLine, visitLine };
 }
 
 function PassportPage() {
   const { t, pets, selectedPetId, selectPet } = useApp();
   const pet = pets.find((p) => p.id === selectedPetId) ?? pets[0];
+  const [vetMode, setVetMode] = useState(false);
+
+  // "Show to the vet": the same passport on a full screen, without the app chrome and actions.
+  if (vetMode && pet) {
+    return (
+      <div className="fixed inset-0 z-[60] overflow-y-auto bg-background">
+        <div className="mx-auto max-w-md space-y-4 p-4 pb-10">
+          <div className="flex justify-end">
+            <GhostButton onClick={() => setVetMode(false)}>
+              <X className="h-4 w-4" /> {t.ppVetClose}
+            </GhostButton>
+          </div>
+          <PassportView pet={pet} inVet />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -119,7 +156,7 @@ function PassportPage() {
               ))}
             </div>
           )}
-          <PassportView pet={pet} />
+          <PassportView pet={pet} onVet={() => setVetMode(true)} />
         </>
       )}
     </>
@@ -136,9 +173,18 @@ const missingLabels = (t: Dict): Record<PassportMissing, string> => ({
   vetPhone: t.medVet,
 });
 
-function PassportView({ pet }: { pet: Pet }) {
+function PassportView({
+  pet,
+  onVet,
+  inVet = false,
+}: {
+  pet: Pet;
+  onVet?: () => void;
+  inVet?: boolean;
+}) {
   const { vaccines } = useApp();
-  const { t, owner, identity, vacc, contacts, vis, text, vaccLine, visitLine } = usePassport(pet);
+  const { t, owner, identity, vacc, contacts, vis, medLines, text, vaccLine, visitLine } =
+    usePassport(pet);
   const today = todayISO();
   const missing = passportMissing(pet, owner);
   const labels = missingLabels(t);
@@ -209,6 +255,23 @@ function PassportView({ pet }: { pet: Pet }) {
             </section>
           )}
 
+          <section className="space-y-2 rounded-2xl border-2 border-primary/30 bg-secondary px-4 py-3">
+            <h3 className="flex items-center gap-2 text-sm font-extrabold text-primary">
+              <Pill className="h-4 w-4" /> {t.ppMeds}
+            </h3>
+            {medLines.length === 0 ? (
+              <p className="text-sm text-muted-foreground">{t.ppNoMeds}</p>
+            ) : (
+              <ul className="space-y-1">
+                {medLines.map((l, i) => (
+                  <li key={i} className="text-sm font-bold">
+                    {l}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
           <section className="space-y-2">
             <h3 className="text-sm font-extrabold uppercase tracking-wider text-accent-foreground/80 dark:text-accent">
               {t.ppContacts}
@@ -242,7 +305,7 @@ function PassportView({ pet }: { pet: Pet }) {
               <p className="text-sm text-muted-foreground">{t.hReportEmpty}</p>
             ) : (
               <ul className="divide-y rounded-2xl border">
-                {vacc.slice(0, 4).map((v) => {
+                {vacc.slice(0, 6).map((v) => {
                   const st = dueStatus(v, vaccines, today);
                   return (
                     <li
@@ -284,7 +347,13 @@ function PassportView({ pet }: { pet: Pet }) {
         </div>
       </article>
 
-      {missing.length ? (
+      {!inVet && (
+        <PrimaryButton className="w-full" onClick={onVet}>
+          <Stethoscope className="h-4 w-4" /> {t.ppVetMode}
+        </PrimaryButton>
+      )}
+
+      {!inVet && missing.length ? (
         <Card className="space-y-2">
           <p className="text-sm font-bold">{t.ppMissing}</p>
           <p className="text-sm text-muted-foreground">
@@ -298,11 +367,14 @@ function PassportView({ pet }: { pet: Pet }) {
           </Link>
         </Card>
       ) : (
-        <p className="flex items-center gap-2 text-sm font-semibold text-safe">
-          <CheckCircle2 className="h-4 w-4" /> {t.ppComplete}
-        </p>
+        !inVet && (
+          <p className="flex items-center gap-2 text-sm font-semibold text-safe">
+            <CheckCircle2 className="h-4 w-4" /> {t.ppComplete}
+          </p>
+        )
       )}
 
+      {!inVet && (
       <div className="grid grid-cols-2 gap-3">
         <PrimaryButton
           className="col-span-2"
@@ -319,6 +391,7 @@ function PassportView({ pet }: { pet: Pet }) {
           <Copy className="h-4 w-4" /> {t.ppCopy}
         </GhostButton>
       </div>
+      )}
 
       <p className="text-xs text-muted-foreground">{t.ppDisclaimer}</p>
       <PassportPrint pet={pet} />
@@ -355,7 +428,7 @@ const PRINT_CSS = `
 `;
 
 function PassportPrint({ pet }: { pet: Pet }) {
-  const { t, locale, identity, contacts, vacc, vis } = usePassport(pet);
+  const { t, locale, identity, contacts, vacc, vis, medLines } = usePassport(pet);
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   if (!mounted) return null;
@@ -388,6 +461,17 @@ function PassportPrint({ pet }: { pet: Pet }) {
         <div className="alert">
           <b>{t.medNotes}:</b> {pet.notes}
         </div>
+      )}
+
+      <h2>{t.ppMeds}</h2>
+      {medLines.length === 0 ? (
+        <p className="empty">{t.ppNoMeds}</p>
+      ) : (
+        <ul>
+          {medLines.map((l, i) => (
+            <li key={i}>{l}</li>
+          ))}
+        </ul>
       )}
 
       <h2>{t.ppContacts}</h2>
