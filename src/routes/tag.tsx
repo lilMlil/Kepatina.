@@ -64,8 +64,11 @@ function TagPage() {
       <>
         <PageHeading title={t.tagTitle} back="/" />
         <Card className="space-y-3">
-          <p className="text-sm">{t.tagNoPet}</p>
-          <Link to="/pets" className="font-bold text-primary">
+          <p className="text-sm font-semibold text-warn">{t.hNeedPet}</p>
+          <Link
+            to="/pets"
+            className="inline-flex items-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground"
+          >
             {t.addPet}
           </Link>
         </Card>
