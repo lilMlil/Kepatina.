@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Bell, CheckCircle2, Syringe } from "lucide-react";
-import { Avatar, Card, PageHeading } from "@/components/kit";
+import { Avatar, Card, NeedPetHint, PageHeading } from "@/components/kit";
 import { speciesLabel, useApp } from "@/lib/store";
 import { formatDate, todayISO } from "@/lib/health";
 import { petAge } from "@/lib/reminders";
@@ -51,15 +51,7 @@ function VaccinesPage() {
     return (
       <>
         <PageHeading back="/" title={t.vsTitle} subtitle={t.vsSubtitle} />
-        <Card className="space-y-3">
-          <p className="text-sm text-muted-foreground">{t.hNeedPet}</p>
-          <Link
-            to="/pets"
-            className="inline-flex rounded-2xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground"
-          >
-            {t.addPet}
-          </Link>
-        </Card>
+        <NeedPetHint />
       </>
     );
   }
