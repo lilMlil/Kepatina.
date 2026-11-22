@@ -133,15 +133,24 @@ export function TextField(props: React.InputHTMLAttributes<HTMLInputElement> & {
   );
 }
 
-/** A paw that stands upright: four toes on top, the pad below (symmetric, no tilt). */
+/** The outlined paw from the app's earlier icons, drawn upright (four toes on top, pad below, no tilt). */
 export function PawIcon({ style }: { style?: React.CSSProperties }) {
   return (
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style={style}>
-      <ellipse cx="5.5" cy="10" rx="2.2" ry="2.8" />
-      <ellipse cx="9.5" cy="5.2" rx="2.3" ry="2.9" />
-      <ellipse cx="14.5" cy="5.2" rx="2.3" ry="2.9" />
-      <ellipse cx="18.5" cy="10" rx="2.2" ry="2.8" />
-      <path d="M12 12.2c-3.3 0-6.6 4.3-6.6 7.2 0 1.9 1.4 2.6 3 2.6 1.3 0 2.1-.7 3.6-.7s2.3.7 3.6.7c1.6 0 3-.7 3-2.6 0-2.9-3.3-7.2-6.6-7.2z" />
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      style={style}
+    >
+      <circle cx="6" cy="10" r="2" />
+      <circle cx="10" cy="5" r="2" />
+      <circle cx="14" cy="5" r="2" />
+      <circle cx="18" cy="10" r="2" />
+      <path d="M12 12c-3 0-6 4-6 7 0 1.7 1.3 2.5 3 2.5 1.3 0 2-.8 3-.8s1.7.8 3 .8c1.7 0 3-.8 3-2.5 0-3-3-7-6-7z" />
     </svg>
   );
 }
