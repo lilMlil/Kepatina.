@@ -33,7 +33,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Settings className="h-5 w-5" />
           </Link>
           <Link to="/profile" aria-label={t.tabProfile}>
-            <Avatar src={owner.photo} size={40} />
+            <Avatar src={owner.photo} size={40} fallback="person" />
           </Link>
         </div>
       </header>
