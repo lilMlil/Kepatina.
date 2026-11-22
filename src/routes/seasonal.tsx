@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Leaf, ExternalLink } from "lucide-react";
 import { Card, Chip, PageHeading } from "@/components/kit";
@@ -13,6 +13,17 @@ function Seasonal() {
   return (
     <>
       <PageHeading title={t.seasonTitle} back="/" />
+      {!pets.length && (
+        <Card className="space-y-3">
+          <p className="text-sm font-semibold text-warn">{t.hNeedPet}</p>
+          <Link
+            to="/pets"
+            className="inline-flex items-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground"
+          >
+            {t.addPet}
+          </Link>
+        </Card>
+      )}
       <p className="text-xs text-muted-foreground">{t.seasonRegion}</p>
       <div className="flex flex-wrap gap-2">
         {pets.map((p) => (
