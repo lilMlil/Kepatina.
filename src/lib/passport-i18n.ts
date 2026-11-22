@@ -26,6 +26,10 @@ const lv = {
   ppEdit: "Papildināt datus",
   ppMissing: "Pasei vēl trūkst:",
   ppComplete: "Pase ir aizpildīta",
+  ppMeds: "Zāles tagad",
+  ppNoMeds: "Aktīvu zāļu nav",
+  ppVetMode: "Rādīt veterinārārstam",
+  ppVetClose: "Aizvērt",
   ppUpdated: "Atjaunināts",
   ppDisclaimer:
     "Šo pasi aizpilda saimnieks lietotnē. Tā neaizstāj oficiālo dzīvnieka pasi un veterinārārsta ierakstus.",
@@ -57,6 +61,10 @@ const en: PassportDict = {
   ppEdit: "Edit details",
   ppMissing: "Still missing:",
   ppComplete: "Passport is complete",
+  ppMeds: "Medicines now",
+  ppNoMeds: "No active medicines",
+  ppVetMode: "Show to the vet",
+  ppVetClose: "Close",
   ppUpdated: "Updated",
   ppDisclaimer:
     "This passport is filled in by the owner in the app. It does not replace the official pet passport or the vet's records.",
@@ -86,6 +94,10 @@ const ru: PassportDict = {
   ppEdit: "Дополнить данные",
   ppMissing: "Ещё не хватает:",
   ppComplete: "Паспорт заполнен",
+  ppMeds: "Лекарства сейчас",
+  ppNoMeds: "Активных лекарств нет",
+  ppVetMode: "Показать ветеринару",
+  ppVetClose: "Закрыть",
   ppUpdated: "Обновлено",
   ppDisclaimer:
     "Паспорт заполняет владелец в приложении. Он не заменяет официальный ветеринарный паспорт и записи врача.",
@@ -115,6 +127,10 @@ const fr: PassportDict = {
   ppEdit: "Compléter les données",
   ppMissing: "Il manque encore :",
   ppComplete: "Passeport complet",
+  ppMeds: "Médicaments en cours",
+  ppNoMeds: "Aucun médicament en cours",
+  ppVetMode: "Montrer au vétérinaire",
+  ppVetClose: "Fermer",
   ppUpdated: "Mis à jour",
   ppDisclaimer:
     "Ce passeport est rempli par le propriétaire dans l’application. Il ne remplace ni le passeport officiel ni le dossier du vétérinaire.",
