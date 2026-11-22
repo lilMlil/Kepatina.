@@ -1,6 +1,6 @@
 import { useId, useRef, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { Camera, ChevronLeft, PawPrint, User } from "lucide-react";
+import { Camera, ChevronLeft, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fileToAvatar } from "@/lib/image";
 import { SPECIES, speciesLabel, useApp } from "@/lib/store";
@@ -133,6 +133,37 @@ export function TextField(props: React.InputHTMLAttributes<HTMLInputElement> & {
   );
 }
 
+/** A paw that stands upright: four toes on top, the pad below (symmetric, no tilt). */
+export function PawIcon({ style }: { style?: React.CSSProperties }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style={style}>
+      <ellipse cx="5.5" cy="10" rx="2.2" ry="2.8" />
+      <ellipse cx="9.5" cy="5.2" rx="2.3" ry="2.9" />
+      <ellipse cx="14.5" cy="5.2" rx="2.3" ry="2.9" />
+      <ellipse cx="18.5" cy="10" rx="2.2" ry="2.8" />
+      <path d="M12 12.2c-3.3 0-6.6 4.3-6.6 7.2 0 1.9 1.4 2.6 3 2.6 1.3 0 2.1-.7 3.6-.7s2.3.7 3.6.7c1.6 0 3-.7 3-2.6 0-2.9-3.3-7.2-6.6-7.2z" />
+    </svg>
+  );
+}
+
+/** Yellow hint for screens that need a pet first, with the button to add one. */
+export function NeedPetHint() {
+  const { t } = useApp();
+  return (
+    <Card className="space-y-3">
+      <p className="text-sm font-semibold text-warn" style={{ color: "var(--warn)" }}>
+        {t.hNeedPet}
+      </p>
+      <Link
+        to="/pets"
+        className="inline-flex items-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground"
+      >
+        {t.addPet}
+      </Link>
+    </Card>
+  );
+}
+
 export function Avatar({
   src,
   size = 44,
@@ -159,7 +190,7 @@ export function Avatar({
         fallback === "person" ? (
           <User aria-hidden="true" style={{ width: size * 0.45, height: size * 0.45 }} />
         ) : (
-          <PawPrint aria-hidden="true" style={{ width: size * 0.45, height: size * 0.45 }} />
+          <PawIcon style={{ width: size * 0.45, height: size * 0.45 }} />
         )
       )}
     </div>
