@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   CartesianGrid,
@@ -16,6 +15,8 @@ import {
   FileDown,
   FileText,
   ImagePlus,
+  Loader2,
+  Paperclip,
   Scale,
   Stethoscope,
   Syringe,
@@ -32,7 +33,10 @@ import {
   useConfirm,
 } from "@/components/kit";
 import { speciesLabel, useApp } from "@/lib/store";
-import { printReport } from "@/lib/print";
+import { createReportPdf, deliverPdf, safeFileName, type ReportBlock } from "@/lib/print";
+import { MAX_LOCAL_FILE_BYTES, saveLocalFiles } from "@/lib/media";
+import type { DocumentEntry } from "@/lib/memories";
+import { NoAppError, openStoredFile } from "@/lib/native/open-file";
 import { petAge, type Pet } from "@/lib/reminders";
 import type { Dict } from "@/lib/i18n";
 import {
@@ -137,21 +141,7 @@ function HealthPage() {
           {tab === "vaccines" && <VaccinesTab pet={pet} />}
           {tab === "visits" && <VisitsTab pet={pet} />}
 
-          <Card className="space-y-3">
-            <GhostButton
-              className="w-full"
-              onClick={() =>
-                printReport(`${pet.name} — ${t.hReportTitle} ${todayISO()}`, () =>
-                  toast.error(t.hPrintFail),
-                )
-              }
-            >
-              <FileDown className="h-4 w-4" /> {t.hExport}
-            </GhostButton>
-            <p className="text-center text-xs text-muted-foreground">{t.hExportHint}</p>
-          </Card>
-
-          <VetReport pet={pet} />
+          <ExportCard pet={pet} />
         </>
       )}
     </>
@@ -162,32 +152,111 @@ function RecordDocuments({
   petId,
   recordKind,
   recordId,
+  recordDate,
 }: {
   petId: string;
   recordKind: "visit" | "vaccine";
   recordId: string;
+  recordDate: string;
 }) {
-  const { t, documents } = useApp();
+  const { t, documents, addDocument, removeDocument } = useApp();
+  const { ask, dialog } = useConfirm();
+  const input = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
   const attached = documents.filter(
     (document) =>
       document.petId === petId &&
       document.recordKind === recordKind &&
       document.recordId === recordId,
   );
-  if (!attached.length) return null;
+
+  const open = async (entry: DocumentEntry) => {
+    try {
+      const result = await openStoredFile(entry.file);
+      if (result === "downloaded") toast.success(t.documentsDownloaded);
+    } catch (error) {
+      if (error instanceof NoAppError) toast.error(t.documentsNoApp);
+      else if ((error as Error | undefined)?.message === "missing") toast.error(t.documentsMissing);
+      else toast.error(t.documentsOpenError);
+    }
+  };
+
+  const remove = async (entry: DocumentEntry) => {
+    const removed = await removeDocument(entry.id);
+    if (!removed) toast.error(t.documentsDeleteError);
+  };
+
+  const pick = async (file: File | null) => {
+    if (!file) return;
+    if (!file.size || file.size > MAX_LOCAL_FILE_BYTES) return void toast.error(t.memoryFileLimit);
+    setBusy(true);
+    try {
+      const [stored] = await saveLocalFiles([file]);
+      if (!stored) throw new Error("not saved");
+      addDocument({
+        petId,
+        date: recordDate,
+        title: file.name.replace(/\.[^.]+$/, "") || file.name,
+        category: recordKind === "vaccine" ? "vaccination" : "medical",
+        file: stored,
+        recordKind,
+        recordId,
+      });
+      toast.success(t.hAttachSaved);
+    } catch {
+      toast.error(t.documentsStorageError);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="space-y-1 pt-2">
-      <p className="text-xs font-bold text-muted-foreground">{t.documentsAttachments}</p>
+      {attached.length > 0 && (
+        <p className="text-xs font-bold text-muted-foreground">{t.documentsAttachments}</p>
+      )}
       {attached.map((document) => (
-        <Link
-          key={document.id}
-          to="/documents"
-          className="flex items-center gap-2 rounded-xl bg-secondary px-3 py-2 text-sm font-bold text-primary"
-        >
-          <FileText className="h-4 w-4 shrink-0" />
-          <span className="min-w-0 break-all">{document.title}</span>
-        </Link>
+        <div key={document.id} className="flex items-center gap-1 rounded-xl bg-secondary">
+          <button
+            type="button"
+            onClick={() => void open(document)}
+            className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2 text-left text-sm font-bold text-primary"
+          >
+            <FileText className="h-4 w-4 shrink-0" />
+            <span className="min-w-0 break-all">{document.title}</span>
+          </button>
+          <button
+            type="button"
+            aria-label={`${t.delete} ${document.title}`}
+            onClick={() =>
+              ask(t.documentsDeleteQ, t.documentsDeleteBody, t.delete, () => void remove(document))
+            }
+            className="p-2 text-muted-foreground"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
       ))}
+      <input
+        ref={input}
+        type="file"
+        className="hidden"
+        onChange={(event) => {
+          const file = event.target.files?.[0] ?? null;
+          event.target.value = "";
+          void pick(file);
+        }}
+      />
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => input.current?.click()}
+        className="flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-dashed px-3 py-2 text-sm font-bold text-primary disabled:opacity-50"
+      >
+        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
+        {t.hAttach}
+      </button>
+      {dialog}
     </div>
   );
 }
@@ -403,6 +472,10 @@ function VaccinesTab({ pet }: { pet: Pet }) {
   const mine = vaccines.filter((v) => v.petId === pet.id);
   const list = sortByDateDesc(mine);
   const canRemind = !!nextDue && nextDue > todayISO();
+  const overdue = list.filter((v) => dueStatus(v, mine) === "overdue");
+  const nextUp = mine
+    .filter((v) => v.nextDue && dueStatus(v, mine) === "upcoming")
+    .sort((a, b) => (a.nextDue ?? "").localeCompare(b.nextDue ?? ""))[0];
 
   const submit = () => {
     if (!name.trim()) return setErr(t.hNeedName);
@@ -438,6 +511,28 @@ function VaccinesTab({ pet }: { pet: Pet }) {
 
   return (
     <>
+      {(overdue.length > 0 || nextUp) && (
+        <Card className="space-y-3 py-3">
+          {overdue.length > 0 && (
+            <div className="space-y-0.5">
+              <p className="text-sm font-bold text-danger">{t.hOverdueTitle}</p>
+              {overdue.map((v) => (
+                <p key={v.id} className="text-sm">
+                  {v.name} · {formatDate(v.nextDue ?? "", locale)}
+                </p>
+              ))}
+            </div>
+          )}
+          {nextUp && (
+            <div className="space-y-0.5">
+              <p className="text-sm font-bold text-safe">{t.hUpcomingTitle}</p>
+              <p className="text-sm">
+                {nextUp.name} · {formatDate(nextUp.nextDue ?? "", locale)}
+              </p>
+            </div>
+          )}
+        </Card>
+      )}
       <Card className="space-y-4">
         <h2 className="flex items-center gap-2 text-lg font-semibold">
           <Syringe className="h-5 w-5 text-primary" /> {t.hAdd}
@@ -535,7 +630,12 @@ function VaccinesTab({ pet }: { pet: Pet }) {
                 </p>
               )}
               {v.note && <p className="text-xs text-muted-foreground">{v.note}</p>}
-              <RecordDocuments petId={pet.id} recordKind="vaccine" recordId={v.id} />
+              <RecordDocuments
+                petId={pet.id}
+                recordKind="vaccine"
+                recordId={v.id}
+                recordDate={v.date}
+              />
             </Card>
           );
         })}
@@ -654,7 +754,12 @@ function VisitsTab({ pet }: { pet: Pet }) {
             {v.notes && (
               <p className="whitespace-pre-wrap text-sm text-muted-foreground">{v.notes}</p>
             )}
-            <RecordDocuments petId={pet.id} recordKind="visit" recordId={v.id} />
+            <RecordDocuments
+              petId={pet.id}
+              recordKind="visit"
+              recordId={v.id}
+              recordDate={v.date}
+            />
           </Card>
         ))}
       </section>
@@ -663,91 +768,23 @@ function VisitsTab({ pet }: { pet: Pet }) {
   );
 }
 
-/* --------------------------------------------------------- printable report */
+/* ------------------------------------------------------------- PDF export */
 
-const PRINT_CSS = `
-@media screen { #vet-report { display: none; } }
-@media print {
-  @page { margin: 14mm; }
-  html, body { background: #fff !important; }
-  body > *:not(#vet-report) { display: none !important; }
-  #vet-report { display: block; }
-}
-#vet-report { color: #111; background: #fff; font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; font-size: 12px; line-height: 1.45; }
-#vet-report h1 { font-size: 22px; margin: 0 0 2px; }
-#vet-report h2 { font-size: 14px; margin: 18px 0 6px; padding-bottom: 3px; border-bottom: 1.5px solid #2f6b4f; color: #2f6b4f; }
-#vet-report .meta { color: #555; font-size: 11px; margin: 0 0 10px; }
-#vet-report dl { display: grid; grid-template-columns: 170px 1fr; gap: 3px 12px; margin: 0; }
-#vet-report dt { font-weight: 700; }
-#vet-report dd { margin: 0; white-space: pre-wrap; }
-#vet-report table { width: 100%; border-collapse: collapse; }
-#vet-report th, #vet-report td { border: 1px solid #bbb; padding: 4px 6px; text-align: left; vertical-align: top; }
-#vet-report th { background: #eef3ef; }
-#vet-report tr { break-inside: avoid; }
-#vet-report .empty { color: #666; font-style: italic; }
-#vet-report .foot { margin-top: 22px; color: #666; font-size: 10px; border-top: 1px solid #ccc; padding-top: 6px; }
-`;
+type Owner = { name: string };
 
-/** Plain SVG weight chart for the printed report (no dependency on layout width). */
-function PrintChart({ points, unit }: { points: { date: string; v: number }[]; unit: string }) {
-  const W = 640;
-  const H = 170;
-  const L = 46;
-  const R = 12;
-  const T = 12;
-  const B = 24;
-  const times = points.map((p) => new Date(`${p.date}T00:00:00`).getTime());
-  const t0 = times[0] ?? 0;
-  const t1 = times[times.length - 1] ?? t0;
-  let lo = Math.min(...points.map((p) => p.v));
-  let hi = Math.max(...points.map((p) => p.v));
-  if (lo === hi) {
-    lo -= 1;
-    hi += 1;
-  }
-  const x = (i: number) =>
-    t1 === t0 ? (L + W - R) / 2 : L + (((times[i] ?? t0) - t0) / (t1 - t0)) * (W - L - R);
-  const y = (v: number) => T + ((hi - v) / (hi - lo)) * (H - T - B);
-  const pts = points.map((p, i) => `${x(i).toFixed(1)},${y(p.v).toFixed(1)}`).join(" ");
-  const fmt = (v: number) => String(Number(v.toFixed(2)));
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" style={{ maxHeight: 200 }}>
-      <line x1={L} y1={T} x2={L} y2={H - B} stroke="#999" />
-      <line x1={L} y1={H - B} x2={W - R} y2={H - B} stroke="#999" />
-      <text x={L - 6} y={T + 4} fontSize="10" textAnchor="end" fill="#444">
-        {fmt(hi)}
-      </text>
-      <text x={L - 6} y={H - B} fontSize="10" textAnchor="end" fill="#444">
-        {fmt(lo)}
-      </text>
-      <text x={L - 6} y={(T + H - B) / 2 + 4} fontSize="10" textAnchor="end" fill="#444">
-        {unit}
-      </text>
-      <polyline points={pts} fill="none" stroke="#2f6b4f" strokeWidth="2" />
-      {points.map((p, i) => (
-        <circle key={`${p.date}-${i}`} cx={x(i)} cy={y(p.v)} r="3" fill="#2f6b4f" />
-      ))}
-      <text x={L} y={H - 6} fontSize="10" fill="#444">
-        {points[0]?.date}
-      </text>
-      <text x={W - R} y={H - 6} fontSize="10" textAnchor="end" fill="#444">
-        {points[points.length - 1]?.date}
-      </text>
-    </svg>
-  );
-}
-
-function VetReport({ pet }: { pet: Pet }) {
-  const { t, owner, weights, vaccines, visits, settings } = useApp();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  if (!mounted) return null;
-
-  const locale = settings.lang;
+function buildReportBlocks(
+  t: Dict,
+  pet: Pet,
+  owner: Owner,
+  weights: ReturnType<typeof useApp>["weights"],
+  vaccines: ReturnType<typeof useApp>["vaccines"],
+  visits: ReturnType<typeof useApp>["visits"],
+  documents: DocumentEntry[],
+  locale: string,
+): ReportBlock[] {
   const grams = usesGrams(pet.species);
   const unit = grams ? t.hUnitG : t.hUnitKg;
   const wAsc = sortByDateAsc(weights.filter((w) => w.petId === pet.id));
-  const wDesc = [...wAsc].reverse();
   const vacc = sortByDateDesc(vaccines.filter((v) => v.petId === pet.id));
   const vis = sortByDateDesc(visits.filter((v) => v.petId === pet.id));
   const lastW = latestWeight(weights, pet.id);
@@ -773,111 +810,151 @@ function VetReport({ pet }: { pet: Pet }) {
     [t.medNotes, pet.notes ?? ""],
   ];
 
-  const node = (
-    <div id="vet-report">
-      <style>{PRINT_CSS}</style>
-      <h1>{t.hReportTitle}</h1>
-      <p className="meta">
-        {t.appName} · {t.hReportCreated}: {formatDate(todayISO(), locale)}
-      </p>
+  const docNames = (kind: "visit" | "vaccine", id: string) =>
+    documents
+      .filter((d) => d.petId === pet.id && d.recordKind === kind && d.recordId === id)
+      .map((d) => d.title)
+      .join("\n");
 
-      <dl>
-        {info
-          .filter(([, v]) => v.trim())
-          .map(([k, v]) => (
-            <div key={k} style={{ display: "contents" }}>
-              <dt>{k}</dt>
-              <dd>{v}</dd>
-            </div>
-          ))}
-      </dl>
+  const empty: ReportBlock = { type: "text", text: t.hReportEmpty, muted: true };
+  const blocks: ReportBlock[] = [
+    {
+      type: "title",
+      text: t.hReportTitle,
+      meta: `${t.appName} · ${t.hReportCreated}: ${formatDate(todayISO(), locale)}`,
+    },
+    { type: "kv", rows: info },
+    { type: "heading", text: t.hTabWeight },
+  ];
 
-      <h2>{t.hTabWeight}</h2>
-      {wAsc.length === 0 ? (
-        <p className="empty">{t.hReportEmpty}</p>
-      ) : (
-        <>
-          {wAsc.length > 1 && (
-            <PrintChart
-              points={wAsc.map((w) => ({ date: w.date, v: chartValue(w.kg, pet.species) }))}
-              unit={unit}
-            />
-          )}
-          <table>
-            <thead>
-              <tr>
-                <th>{t.date}</th>
-                <th>{t.hWeightField}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {wDesc.slice(0, 15).map((w) => (
-                <tr key={w.id}>
-                  <td>{formatDate(w.date, locale)}</td>
-                  <td>{formatWeight(w.kg, pet.species)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </>
-      )}
+  if (wAsc.length === 0) {
+    blocks.push(empty);
+  } else {
+    if (wAsc.length > 1) {
+      blocks.push({
+        type: "chart",
+        points: wAsc.map((w) => ({ date: w.date, v: chartValue(w.kg, pet.species) })),
+        unit,
+      });
+    }
+    blocks.push({
+      type: "table",
+      head: [t.date, t.hWeightField, t.hSincePrev],
+      widths: [0.34, 0.33, 0.33],
+      rows: wAsc
+        .map((w, i) => {
+          const before = wAsc[i - 1];
+          return [
+            formatDate(w.date, locale),
+            formatWeight(w.kg, pet.species),
+            before ? formatWeightDelta(w.kg - before.kg, pet.species) : "",
+          ];
+        })
+        .reverse()
+        .slice(0, 30),
+    });
+  }
 
-      <h2>{t.hTabVaccines}</h2>
-      {vacc.length === 0 ? (
-        <p className="empty">{t.hReportEmpty}</p>
-      ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>{t.hVaccineDate}</th>
-              <th>{t.hVaccineName}</th>
-              <th>{t.hNextOn}</th>
-              <th>{t.hVaccineNote}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {vacc.map((v) => (
-              <tr key={v.id}>
-                <td>{formatDate(v.date, locale)}</td>
-                <td>{v.name}</td>
-                <td>{v.nextDue ? formatDate(v.nextDue, locale) : ""}</td>
-                <td>{v.note ?? ""}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+  blocks.push({ type: "heading", text: t.hTabVaccines });
+  if (vacc.length === 0) {
+    blocks.push(empty);
+  } else {
+    const withDocs = vacc.some((v) => docNames("vaccine", v.id));
+    blocks.push({
+      type: "table",
+      head: [
+        t.hVaccineDate,
+        t.hVaccineName,
+        t.hNextOn,
+        t.hVaccineNote,
+        ...(withDocs ? [t.documentsTitle] : []),
+      ],
+      widths: withDocs ? [0.16, 0.22, 0.2, 0.22, 0.2] : [0.18, 0.3, 0.24, 0.28],
+      rows: vacc.map((v) => [
+        formatDate(v.date, locale),
+        v.name,
+        v.nextDue
+          ? `${formatDate(v.nextDue, locale)}${dueStatus(v, vacc) === "overdue" ? ` (${t.hOverdueOn})` : ""}`
+          : "",
+        v.note ?? "",
+        ...(withDocs ? [docNames("vaccine", v.id)] : []),
+      ]),
+    });
+  }
 
-      <h2>{t.hTabVisits}</h2>
-      {vis.length === 0 ? (
-        <p className="empty">{t.hReportEmpty}</p>
-      ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>{t.hVisitDate}</th>
-              <th>{t.hVisitReason}</th>
-              <th>{t.hVisitClinic}</th>
-              <th>{t.hVisitNotes}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {vis.map((v) => (
-              <tr key={v.id}>
-                <td>{formatDate(v.date, locale)}</td>
-                <td>{v.reason}</td>
-                <td>{v.clinic ?? ""}</td>
-                <td style={{ whiteSpace: "pre-wrap" }}>{v.notes ?? ""}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+  blocks.push({ type: "heading", text: t.hTabVisits });
+  if (vis.length === 0) {
+    blocks.push(empty);
+  } else {
+    const withDocs = vis.some((v) => docNames("visit", v.id));
+    blocks.push({
+      type: "table",
+      head: [
+        t.hVisitDate,
+        t.hVisitReason,
+        t.hVisitClinic,
+        t.hVisitNotes,
+        ...(withDocs ? [t.documentsTitle] : []),
+      ],
+      widths: withDocs ? [0.15, 0.2, 0.17, 0.3, 0.18] : [0.17, 0.23, 0.2, 0.4],
+      rows: vis.map((v) => [
+        formatDate(v.date, locale),
+        v.reason,
+        v.clinic ?? "",
+        v.notes ?? "",
+        ...(withDocs ? [docNames("visit", v.id)] : []),
+      ]),
+    });
+  }
 
-      <p className="foot">{t.hReportFooter}</p>
-    </div>
+  blocks.push({ type: "note", text: t.hReportFooter });
+  return blocks;
+}
+
+function ExportCard({ pet }: { pet: Pet }) {
+  const { t, owner, weights, vaccines, visits, documents, settings } = useApp();
+  const [busy, setBusy] = useState(false);
+
+  const run = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const title = `${pet.name} — ${t.hReportTitle}`;
+      const blocks = buildReportBlocks(
+        t,
+        pet,
+        owner,
+        weights,
+        vaccines,
+        visits,
+        documents,
+        settings.lang,
+      );
+      const pdf = await createReportPdf(blocks, {
+        title,
+        appName: t.appName,
+        pageLabel: (page, total) => `${t.hReportPage} ${page} / ${total}`,
+      });
+      const result = await deliverPdf(
+        pdf,
+        safeFileName(`${pet.name}-${t.hReportTitle}-${todayISO()}`, "pdf"),
+        title,
+      );
+      if (result === "downloaded") toast.success(t.hExportDownloaded);
+    } catch {
+      toast.error(t.hExportFail);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card className="space-y-3">
+      <GhostButton className="w-full" disabled={busy} onClick={() => void run()}>
+        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}{" "}
+        {busy ? t.hExporting : t.hExport}
+      </GhostButton>
+      <p className="text-center text-xs text-muted-foreground">{t.hExportHint}</p>
+    </Card>
   );
-
-  // Rendered straight into <body> so the print stylesheet can hide the rest of the app.
-  return createPortal(node, document.body);
 }
