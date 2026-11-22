@@ -6,6 +6,7 @@ import {
   Avatar,
   Card,
   GhostButton,
+  NeedPetHint,
   PageHeading,
   PrimaryButton,
   TextField,
@@ -39,9 +40,7 @@ function MedsPage() {
     <>
       <PageHeading title={t.medsTitle} subtitle={t.medsTool} back="/" />
       {!pets.length ? (
-        <Card>
-          <p className="text-sm">{t.tagNoPet}</p>
-        </Card>
+        <NeedPetHint />
       ) : adding ? (
         <NewCourse petId={selectedPet?.id ?? pets[0]?.id ?? ""} onClose={() => setAdding(false)} />
       ) : (
