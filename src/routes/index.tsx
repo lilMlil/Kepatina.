@@ -20,7 +20,7 @@ import {
 import { Avatar, Card } from "@/components/kit";
 import { Carousel } from "@/components/Carousel";
 import { speciesLabel, useApp } from "@/lib/store";
-import { expenseTotal } from "@/lib/expenses";
+import { expenseCategories, expenseTotal } from "@/lib/expenses";
 import { localDate, nextDoses } from "@/lib/meds";
 import { seasonFor, tipsFor } from "@/lib/seasonal";
 
@@ -95,6 +95,8 @@ function Home() {
     new Intl.NumberFormat(settings.lang, { style: "currency", currency: "EUR" }).format(
       cents / 100,
     );
+  // The newest expense of the month is shown as a card like the reminders; the month total sits in its header.
+  const latestExpense = [...monthRows].sort((a, b) => b.date.localeCompare(a.date))[0];
   const infoSlides = [
     ...reminderCards.map((r) => {
       const late = r.at.getTime() < Date.now();
@@ -120,7 +122,7 @@ function Home() {
         </Link>
       );
     }),
-    ...(monthRows.length
+    ...(latestExpense
       ? [
           <Link
             key="expenses"
@@ -130,9 +132,20 @@ function Home() {
             <span className="flex items-center gap-2 text-sm font-bold text-primary">
               <Wallet className="h-4 w-4 shrink-0" />
               <span className="truncate">{t.exTitle}</span>
+              <span className="ml-auto text-xs font-semibold text-muted-foreground">
+                {money(expenseTotal(monthRows))}
+              </span>
             </span>
-            <span className="mt-auto block text-3xl font-semibold text-primary">
-              {money(expenseTotal(monthRows))}
+            <span className="block break-words text-lg font-semibold leading-tight">
+              {latestExpense.note ||
+                t.exCategories[expenseCategories.indexOf(latestExpense.category)]}
+            </span>
+            <span className="block text-xs text-muted-foreground">
+              {petName(latestExpense.petId)} ·{" "}
+              {t.exCategories[expenseCategories.indexOf(latestExpense.category)]}
+            </span>
+            <span className="mt-auto block text-sm font-bold text-primary">
+              {money(latestExpense.amountCents)} · {latestExpense.date}
             </span>
           </Link>,
         ]
