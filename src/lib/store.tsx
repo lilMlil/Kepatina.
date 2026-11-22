@@ -182,6 +182,8 @@ interface Ctx extends SavedState {
   updateMemories: (update: (memories: MemoryEntry[]) => MemoryEntry[]) => void;
   removeMemory: (id: string) => Promise<boolean>;
   addDocument: (document: Omit<DocumentEntry, "id">) => void;
+  /** Changes the documents in one step (edit title, category, linked record, ...). */
+  updateDocuments: (update: (documents: DocumentEntry[]) => DocumentEntry[]) => void;
   removeDocument: (id: string) => Promise<boolean>;
   addMed: (m: Omit<MedCourse, "id" | "done">) => void;
   removeMed: (id: string) => void;
@@ -1087,6 +1089,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           ...s,
           documents: [...s.documents, { ...document, id: makeId() }],
         })),
+      updateDocuments: (update) => setState((s) => ({ ...s, documents: update(s.documents) })),
       removeDocument,
       addMed: (m) =>
         setState((s) => ({ ...s, meds: [...(s.meds ?? []), { ...m, id: makeId(), done: {} }] })),
