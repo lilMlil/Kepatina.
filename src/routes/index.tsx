@@ -21,7 +21,7 @@ import { Avatar, Card } from "@/components/kit";
 import { Carousel } from "@/components/Carousel";
 import { speciesLabel, useApp } from "@/lib/store";
 import { expenseTotal } from "@/lib/expenses";
-import { localDate } from "@/lib/meds";
+import { localDate, nextDoses } from "@/lib/meds";
 import { seasonFor, tipsFor } from "@/lib/seasonal";
 
 export const Route = createFileRoute("/")({
@@ -29,7 +29,18 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
-  const { t, pets, reminders, expenses = [], selectedPetId, selectedPet, selectPet, owner, settings } = useApp();
+  const {
+    t,
+    pets,
+    reminders,
+    meds = [],
+    expenses = [],
+    selectedPetId,
+    selectedPet,
+    selectPet,
+    owner,
+    settings,
+  } = useApp();
   const season = seasonFor();
   const seasonalTip = tipsFor(season, selectedPet?.species)[0];
   const checklistText = {
@@ -55,9 +66,27 @@ function Home() {
     { to: "/memories", icon: ImagePlus, title: t.memoryTitle, text: t.memoriesToolText },
     { to: "/documents", icon: FileText, title: t.documentsTitle, text: t.documentsToolText },
   ] as const;
-  const petReminders = [...reminders]
-    .filter((r) => !selectedPetId || r.petId === selectedPetId)
-    .sort((a, b) => a.dueAt.localeCompare(b.dueAt));
+  const petName = (petId: string) => pets.find((p) => p.id === petId)?.name;
+  // Pet reminders and the next dose of each medication course share one card format,
+  // sorted together by time.
+  const reminderCards = [
+    ...reminders
+      .filter((r) => !selectedPetId || r.petId === selectedPetId)
+      .map((r) => ({
+        key: r.id,
+        at: new Date(r.dueAt),
+        to: "/reminders" as const,
+        title: r.title,
+        meta: `${petName(r.petId)} · ${r.category}`,
+      })),
+    ...nextDoses(meds, localDate(), selectedPetId).map((d) => ({
+      key: `${d.courseId}|${d.key}`,
+      at: d.at,
+      to: "/meds" as const,
+      title: d.dose ? `${d.name} · ${d.dose}` : d.name,
+      meta: `${petName(d.petId)} · ${t.medsTitle}`,
+    })),
+  ].sort((a, b) => a.at.getTime() - b.at.getTime());
   const monthKey = localDate().slice(0, 7);
   const monthRows = expenses.filter(
     (e) => (!selectedPetId || e.petId === selectedPetId) && e.date.startsWith(monthKey),
@@ -67,12 +96,12 @@ function Home() {
       cents / 100,
     );
   const infoSlides = [
-    ...petReminders.map((r) => {
-      const late = new Date(r.dueAt).getTime() < Date.now();
+    ...reminderCards.map((r) => {
+      const late = r.at.getTime() < Date.now();
       return (
         <Link
-          key={r.id}
-          to="/reminders"
+          key={r.key}
+          to={r.to}
           className="flex h-full min-h-[8rem] flex-col gap-1 rounded-3xl border bg-card p-4 shadow-soft"
         >
           <span className="flex items-center gap-2 text-sm font-bold text-primary">
@@ -81,11 +110,9 @@ function Home() {
             {late && <span className="ml-auto text-xs text-danger">{t.overdue}</span>}
           </span>
           <span className="block break-words text-lg font-semibold leading-tight">{r.title}</span>
-          <span className="block text-xs text-muted-foreground">
-            {pets.find((p) => p.id === r.petId)?.name} · {r.category}
-          </span>
+          <span className="block text-xs text-muted-foreground">{r.meta}</span>
           <span className="mt-auto block text-sm font-bold text-primary">
-            {new Date(r.dueAt).toLocaleString(settings.lang, {
+            {r.at.toLocaleString(settings.lang, {
               dateStyle: "medium",
               timeStyle: "short",
             })}
