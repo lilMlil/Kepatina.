@@ -31,7 +31,7 @@ export type NewFeaturesDict = { [K in keyof typeof ru]: (typeof ru)[K] };
 export const newFeaturesDicts: Record<Lang, NewFeaturesDict> = {
   ru,
   lv: {
-    exTitle: "Izdevumi",
+    exTitle: "Izveidot uzdevumu",
     exNew: "Pievienot izdevumu",
     exAmount: "Summa (€)",
     exTotal: "Kopā mēnesī",
