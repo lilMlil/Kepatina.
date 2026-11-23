@@ -4,6 +4,7 @@ import { Bell, Home, Search, Settings, Stethoscope, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useApp } from "@/lib/store";
 import { Avatar } from "./kit";
+import { InstallHint } from "./InstallHint";
 import { accountCopy } from "@/lib/account-i18n";
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -21,7 +22,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="mx-auto flex min-h-screen max-w-md flex-col bg-background">
       <header className="sticky top-0 z-30 flex items-center justify-between bg-background/90 px-5 py-3 backdrop-blur">
         <Link to="/" className="flex items-center gap-2">
-          <img src="/icon-192.png" alt="" width={36} height={36} className="h-9 w-9 rounded-xl" />
+          <img src={`${import.meta.env.BASE_URL}icon-192.png`} alt="" width={36} height={36} className="h-9 w-9 rounded-xl" />
           <span className="font-display text-2xl font-semibold text-primary">{t.appName}</span>
         </Link>
         <div className="flex items-center gap-2">
@@ -37,6 +38,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
         </div>
       </header>
+      <InstallHint />
       {!online && (
         <div
           role="status"
