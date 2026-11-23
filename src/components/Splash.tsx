@@ -3,8 +3,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 // The animated logo plays once when the app opens, then fades out. It fills the WHOLE screen.
 // Two versions exist: public/splash.gif (5:8, tablets) and public/splash-phone.gif (1:2, phones).
 // The one whose proportions are closest to the screen is used, so almost nothing gets cropped.
-const TABLET_GIF = "/splash.gif";
-const PHONE_GIF = "/splash-phone.gif";
+const TABLET_GIF = `${import.meta.env.BASE_URL}splash.gif`;
+const PHONE_GIF = `${import.meta.env.BASE_URL}splash-phone.gif`;
 const TABLET_MIN_RATIO = 0.56; // width / height; between 0.5 (phone GIF) and 0.625 (tablet GIF)
 
 function pickGif(): string {
