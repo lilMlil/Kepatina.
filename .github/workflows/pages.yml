@@ -1,0 +1,59 @@
+name: Publish web app (GitHub Pages)
+
+# Publishes the app as a website with HTTPS, so it can be added to the iPhone home screen.
+# Run it manually: GitHub -> Actions -> "Publish web app" -> Run workflow.
+# One-time setup: Settings -> Pages -> Build and deployment -> Source: "GitHub Actions".
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: |
+          npm install -g npm@11
+          for attempt in 1 2 3; do
+            npm install --legacy-peer-deps && exit 0
+            echo "npm install failed (attempt $attempt of 3), retrying in 15 s..."
+            sleep 15
+          done
+          exit 1
+
+      - name: Create .env from repository secrets
+        run: |
+          {
+            echo "VITE_SUPABASE_URL=${{ secrets.SUPABASE_URL }}"
+            echo "VITE_SUPABASE_PUBLISHABLE_KEY=${{ secrets.SUPABASE_PUBLISHABLE_KEY }}"
+            echo "VITE_PUBLIC_WEB_URL=https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+          } > .env
+
+      - run: npm run build
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
