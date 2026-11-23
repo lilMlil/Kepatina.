@@ -19,7 +19,7 @@ function FoundPage() {
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col gap-4 bg-background px-5 py-8">
       <div className="flex items-center gap-2">
-        <img src="/icon-192.png" alt="" width={32} height={32} className="h-8 w-8 rounded-xl" />
+        <img src={`${import.meta.env.BASE_URL}icon-192.png`} alt="" width={32} height={32} className="h-8 w-8 rounded-xl" />
         <span className="font-display text-xl font-semibold text-primary">Ķepatiņa</span>
       </div>
       {!tag ? (
