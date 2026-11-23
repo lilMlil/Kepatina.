@@ -7,8 +7,10 @@ import { RouterProvider } from "@tanstack/react-router";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { router, queryClient } from "./router";
 import { setupNative } from "./lib/native/platform";
+import { registerServiceWorker } from "./lib/pwa";
 
 setupNative(router);
+registerServiceWorker();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
